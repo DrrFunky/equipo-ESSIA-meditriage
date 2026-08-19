@@ -1,9 +1,7 @@
 # 📋 Team Charter — MediTriage
 
 ## 1. 🎯 Propósito y Misión del Equipo
-<!-- Aporte pendiente de Integrante 1 (PO) -->
-*En desarrollo por el Product Owner...*
-
+Nuestra misión como equipo es desarrollar MediTriage para optimizar el flujo de atención en urgencias mediante inteligencia artificial, la cual recopilara tanto sus antecedentes medicos como sus datos personales, dando un veredicto sobre su estado de salud actual y a que escala de ESI pertenece...
 ---
 
 ## 2. 👥 Integrantes y Roles Asignados
