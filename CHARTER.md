@@ -27,21 +27,21 @@ Para que un incremento se considere completado, debe cumplir con:
 
 ---
 
-## 4. 🤖 Política de Uso de Inteligencia Artificial
+## 1. Política de Uso de Inteligencia Artificial (IA)
 
-1. Política de Uso de Inteligencia Artificial (IA)
-Asistencia, no reemplazo: El motor de IA operará estrictamente como una herramienta de apoyo clínico para el triage. La decisión final sobre el flujo de atención y derivación del paciente recae siempre en el personal de salud humano.
-Transparencia y Explicabilidad: El modelo de IA tiene prohibido operar bajo un enfoque de "caja negra". El sistema debe documentar y justificar de forma legible cada sugerencia de categorización ESI (1 al 5) mostrada en el tablero dinámico.
-Privacidad por Diseño y Minimización: El modelo de IA procesará únicamente los datos estrictamente necesarios para su función (síntomas, signos vitales e historia clínica relevante). La IA no utilizará datos de identidad para calcular el nivel de riesgo.
-Tolerancia a Fallos y Alta Disponibilidad: Dado que la IA apoya un entorno crítico (urgencias), el motor debe estar diseñado para cumplir el SLA del 99.5% mensual. En caso de caída del servicio de IA, el sistema debe permitir que el personal médico continúe el triage de manera manual sin bloqueos.
+* **Asistencia, no reemplazo:** El motor de IA operará estrictamente como una herramienta de apoyo clínico para el triage. La decisión final sobre el flujo de atención y derivación del paciente recae siempre en el personal de salud humano.
+* **Transparencia y Explicabilidad:** El modelo de IA tiene prohibido operar bajo un enfoque de "caja negra". El sistema debe documentar y justificar de forma legible cada sugerencia de categorización ESI (1 al 5) mostrada en el tablero dinámico.
+* **Privacidad por Diseño y Minimización:** El modelo de IA procesará únicamente los datos estrictamente necesarios para su función (síntomas, signos vitales e historia clínica relevante). La IA no utilizará datos de identidad para calcular el nivel de riesgo.
+* **Tolerancia a Fallos y Alta Disponibilidad:** Dado que la IA apoya un entorno crítico (urgencias), el motor debe estar diseñado para cumplir el SLA del 99.5% mensual. En caso de caída del servicio de IA, el sistema debe permitir que el personal médico continúe el triage de manera manual sin bloqueos.
 
-2. Seguridad y Cumplimiento Legal (Normativa Chilena)
-Cumplimiento de Privacidad (Ley 19.628 y Ley 21.719):
-Consentimiento Informado: El registro de pacientes mediante validación de RUT debe incluir la captura explícita del consentimiento informado, autorizando el tratamiento de sus datos de salud (considerados datos sensibles por la legislación chilena).
-Alineación Normativa: El manejo de la información se ceñirá a los estándares de protección y confidencialidad exigidos por la Ley 21.719, garantizando los derechos de los pacientes sobre su información médica.
-Cifrado Obligatorio: Todo dato sensible recolectado o generado por la plataforma debe estar protegido mediante cifrado fuerte tanto en tránsito (comunicaciones entre el formulario, la IA y los tableros) como en reposo (bases de datos).
-Enmascaramiento de PII (Personal Identifiable Information): Para proteger la identidad de los pacientes frente a accesos no autorizados o análisis técnicos, toda Información de Identificación Personal (RUT, nombre, contacto) será enmascarada u ofuscada en los registros del sistema (logs).
-Auditoría y Trazabilidad Inmutable: Cada recomendación de triage generada por el motor de IA quedará registrada en un audit log con marca de tiempo. Por mandato de diseño, este registro será inmutable y deberá conservarse de forma segura e íntegra por un período de 5 años para su revisión por parte del Auditor clínico.
+## 2. Seguridad y Cumplimiento Legal (Normativa Chilena)
+
+**Cumplimiento de Privacidad (Ley 19.628 y Ley 21.719):**
+* **Consentimiento Informado:** El registro de pacientes mediante validación de RUT debe incluir la captura explícita del consentimiento informado, autorizando el tratamiento de sus datos de salud (considerados datos sensibles por la legislación chilena).
+* **Alineación Normativa:** El manejo de la información se ceñirá a los estándares de protección y confidencialidad exigidos por la Ley 21.719, garantizando los derechos de los pacientes sobre su información médica.
+* **Cifrado Obligatorio:** Todo dato sensible recolectado o generado por la plataforma debe estar protegido mediante cifrado fuerte tanto en tránsito (comunicaciones entre el formulario, la IA y los tableros) como en reposo (bases de datos).
+* **Enmascaramiento de PII (Personal Identifiable Information):** Para proteger la identidad de los pacientes frente a accesos no autorizados o análisis técnicos, toda Información de Identificación Personal (RUT, nombre, contacto) será enmascarada u ofuscada en los registros del sistema (logs).
+* **Auditoría y Trazabilidad Inmutable:** Cada recomendación de triage generada por el motor de IA quedará registrada en un audit log con marca de tiempo. Por mandato de diseño, este registro será inmutable y deberá conservarse de forma segura e íntegra por un período de 5 años para su revisión por parte del Auditor clínico.
 
 ---
 
