@@ -27,6 +27,8 @@ Para que un incremento se considere completado, debe cumplir con:
 
 ---
 
+## 4. 🤖 Política de Uso de Inteligencia Artificial
+
 ## 1. Política de Uso de Inteligencia Artificial (IA)
 
 * **Asistencia, no reemplazo:** El motor de IA operará estrictamente como una herramienta de apoyo clínico para el triage. La decisión final sobre el flujo de atención y derivación del paciente recae siempre en el personal de salud humano.
