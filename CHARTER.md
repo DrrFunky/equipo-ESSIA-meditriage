@@ -49,7 +49,7 @@ Para que un incremento se considere completado, debe cumplir con:
 
 ## 5. 💬 Canales de Comunicación y Reglas de Trabajo
 
-- **Canal de Slack oficial:** `#equipo-XX-meditriage` (uso obligatorio para notificar Pull Requests, anuncios formales y comunicación asíncrona).
+- **Canal de Slack oficial:** `#equipo-ESSIA-meditriage` (uso obligatorio para notificar Pull Requests, anuncios formales y comunicación asíncrona).
 - **Canal de trabajo síncrono:** Servidor de Discord propio para llamadas de voz rápidas, pair programming y coordinación del día a día.
 - **Reglas de Trabajo:**
   - Todo código debe pasar por un Pull Request (PR) y ser revisado por al menos un integrante distinto al autor antes de hacer *merge* a `main`.
