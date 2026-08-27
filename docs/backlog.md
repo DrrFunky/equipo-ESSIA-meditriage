@@ -99,3 +99,24 @@ para auditar decisiones pasadas en caso de reclamos médicos.
 - E: alcance conocido (log + retención + consulta).
 - S: acotada al registro y consulta, no a la lógica de decisión.
 - T: se verifica que cada recomendación quede registrada y sea inmutable.
+
+## Priorización MoSCoW
+
+Para el desarrollo de este Producto Mínimo Viable (MVP), el equipo ha evaluado el mapa de impacto y priorizado el backlog asegurando que se cumplan las normativas legales chilenas (Ley 19.628 y 21.719) y las restricciones de ingeniería de MediTriage.
+
+### Must Have 
+* **Historia 1 (Sugerencia ESI automatizada):** Es el motor principal del producto; sin él, no hay triage con IA.
+* **Historia 3 (Registro y consentimiento):** Obligatorio por la Ley 19.628 para poder procesar datos sensibles de salud de forma legal.
+* **Historia 4 (Tablero de priorización):** Interfaz mínima para que el personal médico consuma el resultado de la IA y logre el objetivo de negocio.
+* **Historia 5 (Audit log de decisiones IA):** Crítico para cumplir con la Ley 21.719 y las restricciones de ingeniería (registro inmutable por 5 años).
+
+### Should Have 
+* **Historia 2 (Justificación clínica explicable):** Esencial para evitar el efecto "caja negra" de la IA y brindar seguridad a la enfermera, siendo una de las restricciones principales de ingeniería.
+
+### Could Have 
+* **Notificaciones automáticas:** Envío de alertas a los pacientes en sala de espera sobre el tiempo estimado basado en el tablero.
+* **Captura de signos vitales automatizada:** Integración por Bluetooth con monitores de presión/temperatura (por ahora el ingreso en H3 será manual).
+
+### Won't Have
+* **Integración con la Ficha Clínica Única Nacional (Minsal):** Complejidad innecesaria para validar el prototipo inicial.
+* **Aplicación móvil para pacientes:** Todo el flujo se manejará a través de la interfaz web en los tótems o tablets de la clínica.
