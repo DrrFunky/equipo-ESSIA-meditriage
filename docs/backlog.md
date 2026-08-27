@@ -1,4 +1,4 @@
-# Backlog — MeditrIAge
+# Backlog — MediTriage
 
 Historias de usuario derivadas del Impact Map, con checklist INVEST aplicado.
 
