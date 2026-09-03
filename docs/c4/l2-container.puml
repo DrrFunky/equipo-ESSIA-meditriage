@@ -8,25 +8,33 @@ Person(medico, "Personal Médico", "Enfermera de triage o Médico jefe que revis
 
 System_Boundary(meditriage, "MediTriage") {
     
-    Container(spa, "Aplicación SPA Web", "React / Next.js", "Provee la interfaz de usuario para el registro de pacientes y el tablero dinámico del personal médico.")
+    Container(spa, "Aplicación SPA Web", "React / Next.js", "Provee la interfaz de usuario para el registro y el tablero dinámico del personal médico.")
     
-    Container(api, "API Backend", "Python / FastAPI", "Orquesta la lógica de negocio, valida RUT, maneja sesiones y ofusca los datos sensibles (PII).")
+    Container(api, "API Backend", "Python / FastAPI", "Orquesta la lógica, maneja WebSockets, ofusca PII y gestiona la comunicación con sistemas externos.")
     
-    Container(worker_ia, "Servicio de IA (Worker)", "Python", "Procesa síntomas y antecedentes para sugerir la categorización ESI (1-5) y generar su justificación clínica.")
+    Container(worker_ia, "Servicio de IA (Worker)", "Python", "Procesa síntomas de forma asíncrona para sugerir la categorización ESI (1-5) y generar su justificación clínica.")
     
     ContainerDb(db, "Base de Datos Relacional", "PostgreSQL", "Almacena perfiles, consentimientos y estado del triage. Cifrada en reposo (AES-256).")
     
-    ContainerQueue(broker, "Broker de Auditoría", "RabbitMQ / Kafka", "Encola los eventos de decisiones de IA de forma asíncrona para asegurar la persistencia en el audit log inmutable a 5 años.")
+    ContainerQueue(broker, "Broker de Mensajería", "RabbitMQ / Kafka", "Gestiona las colas de inferencia asíncrona de IA y encola eventos para el audit log inmutable a 5 años.")
 }
+
+System_Ext(registro_civil, "Servicio de Registro Civil", "Servicio gubernamental para la validación matemática/identidad del RUT.")
+System_Ext(his_ehr, "Sistema Hospitalario (HIS/EHR)", "Sistema interno de la clínica para consultar antecedentes médicos históricos.")
 
 Rel(paciente, spa, "Ingresa datos y acepta consentimiento", "HTTPS")
 Rel(medico, spa, "Visualiza tablero priorizado", "HTTPS")
 
-Rel(spa, api, "Envía formularios y consulta tablero", "JSON/HTTPS", $tags="port:443")
+Rel(spa, api, "Envía formularios y actualiza tablero en tiempo real", "JSON/HTTPS y WebSockets", $tags="port:443")
 Rel(api, db, "Lee y escribe datos cifrados", "TCP/TLS", $tags="port:5432")
-Rel(api, worker_ia, "Solicita sugerencia ESI (Datos PII enmascarados)", "gRPC", $tags="port:50051")
-Rel(worker_ia, api, "Devuelve ESI y justificación", "gRPC")
-Rel(api, broker, "Publica evento de decisión IA (Datos PII enmascarados)", "AMQP/TCP", $tags="port:5672")
+
+Rel(api, broker, "Publica solicitud de triage (PII ofuscado) y eventos de auditoría", "AMQP/TCP", $tags="port:5672")
+Rel(broker, worker_ia, "Consume solicitudes de inferencia ESI", "AMQP/TCP", $tags="port:5672")
+Rel(worker_ia, broker, "Publica resultado ESI y justificación clínica", "AMQP/TCP", $tags="port:5672")
+Rel(broker, api, "Consume resultados resueltos para notificar vía WebSockets", "AMQP/TCP", $tags="port:5672")
+
+Rel(api, registro_civil, "Solicita validación de RUT", "JSON/HTTPS")
+Rel(api, his_ehr, "Consulta historial clínico (PII minimizado)", "HTTPS/HL7")
 
 SHOW_LEGEND()
 @enduml
