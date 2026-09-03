@@ -1,0 +1,32 @@
+@startuml C4_Elements
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Container.puml
+
+title Diagrama de Contenedores (C4 Nivel 2) - Sistema MediTriage
+
+Person(paciente, "Paciente", "Ingresa sus síntomas y signos vitales en el tótem o tablet.")
+Person(medico, "Personal Médico", "Enfermera de triage o Médico jefe que revisa el tablero dinámico.")
+
+System_Boundary(meditriage, "MediTriage") {
+    
+    Container(spa, "Aplicación SPA Web", "React / Next.js", "Provee la interfaz de usuario para el registro de pacientes y el tablero dinámico del personal médico.")
+    
+    Container(api, "API Backend", "Python / FastAPI", "Orquesta la lógica de negocio, valida RUT, maneja sesiones y ofusca los datos sensibles (PII).")
+    
+    Container(worker_ia, "Servicio de IA (Worker)", "Python", "Procesa síntomas y antecedentes para sugerir la categorización ESI (1-5) y generar su justificación clínica.")
+    
+    ContainerDb(db, "Base de Datos Relacional", "PostgreSQL", "Almacena perfiles, consentimientos y estado del triage. Cifrada en reposo (AES-256).")
+    
+    ContainerQueue(broker, "Broker de Auditoría", "RabbitMQ / Kafka", "Encola los eventos de decisiones de IA de forma asíncrona para asegurar la persistencia en el audit log inmutable a 5 años.")
+}
+
+Rel(paciente, spa, "Ingresa datos y acepta consentimiento", "HTTPS")
+Rel(medico, spa, "Visualiza tablero priorizado", "HTTPS")
+
+Rel(spa, api, "Envía formularios y consulta tablero", "JSON/HTTPS", $tags="port:443")
+Rel(api, db, "Lee y escribe datos cifrados", "TCP/TLS", $tags="port:5432")
+Rel(api, worker_ia, "Solicita sugerencia ESI (Datos PII enmascarados)", "gRPC", $tags="port:50051")
+Rel(worker_ia, api, "Devuelve ESI y justificación", "gRPC")
+Rel(api, broker, "Publica evento de decisión IA (Datos PII enmascarados)", "AMQP/TCP", $tags="port:5672")
+
+SHOW_LEGEND()
+@enduml
