@@ -17,6 +17,11 @@ Para lograr el objetivo, necesitamos cambiar el comportamiento de los siguientes
 * **Impacto:** Entrega su información inicial de manera fluida, sabiendo que sus datos sensibles están protegidos según la normativa vigente.
 * **Deliverable:** Formulario de registro inicial con validación de RUT, captura de síntomas/signos vitales y un check explícito de consentimiento informado.
 
-### Actor 3: Médico Jefe / Auditor Clínico
-* **Impacto:** Puede monitorear los cuellos de botella en tiempo real y auditar las decisiones pasadas de la IA en caso de reclamos médicos.
-* **Deliverable:** Tablero dinámico de pacientes priorizados y un sistema de Audit Log inmutable que registra cada recomendación de la IA por 5 años.
+### Actor 3: Médico Jefe de Turno
+* **Impacto:** Gestiona eficientemente la sala de urgencias y reduce cuellos de botella mediante visibilidad en tiempo real de la demanda y severidad de los pacientes.
+* **Deliverable:** Tablero dinámico de pacientes priorizados con actualización en vivo y gestión visual de boxes de atención.
+
+### Actor 4: Auditor Clínico
+* **Impacto:** Valida la adherencia a protocolos médicos y responde a reclamos o auditorías legales revisando la justificación de las decisiones tomadas por el sistema.
+* **Deliverable:** Sistema de Audit Log inmutable (append-only) con anonimización de PII que conserva la trazabilidad de cada recomendación de la IA por 5 años.
+
