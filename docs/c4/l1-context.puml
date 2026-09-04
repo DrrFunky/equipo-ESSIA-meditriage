@@ -1,0 +1,26 @@
+@startuml l1-context
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Context.puml
+
+LAYOUT_WITH_LEGEND()
+
+title Diagrama de Contexto del Sistema (C4 Nivel 1) — MediTriage
+
+Person(paciente, "Paciente", "Persona que acude al servicio de urgencias y valida identidad/consentimiento.")
+Person(enfermera, "Enfermera de Triage", "Registra signos vitales y consulta la sugerencia de categorización ESI.")
+Person(medico, "Médico Jefe de Turno", "Supervisa la lista priorizada y gestiona los boxes de atención.")
+Person(auditor, "Auditor Clínico", "Revisa explicabilidad de la IA y consulta logs inmutables.")
+
+System(meditriage, "MediTriage", "Sistema de priorización de urgencias asistido por IA explicable con categorización ESI (1-5).")
+
+System_Ext(reg_civil, "Servicio de Registro Civil", "API externa para validación oficial de RUN e identidad.")
+System_Ext(his, "Sistema Hospitalario (HIS/EHR)", "Gestión de ficha clínica electrónica, boxes y admisión hospitalaria.")
+
+Rel(paciente, meditriage, "Ingresa RUT y otorga consentimiento informado", "HTTPS")
+Rel(enfermera, meditriage, "Registra constantes vitales y consulta sugerencia ESI", "HTTPS")
+Rel(medico, meditriage, "Supervisa lista de espera en tiempo real", "HTTPS")
+Rel(auditor, meditriage, "Audita decisiones clínicas y logs inmutables", "HTTPS")
+
+Rel(meditriage, reg_civil, "Valida identidad de pacientes", "HTTPS / REST")
+Rel(meditriage, his, "Sincroniza orden de atención y categoría asignada", "HL7 FHIR / REST")
+
+@enduml
