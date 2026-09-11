@@ -29,7 +29,9 @@ Rel(paciente, spa, "Ingresa datos y acepta consentimiento", "HTTPS")
 Rel(medico, spa, "Visualiza tablero priorizado", "HTTPS")
 
 Rel(spa, api, "Envía formularios y actualiza tablero en tiempo real", "JSON/HTTPS y WebSockets", $tags="port:443")
-Rel(api, db, "Lee y escribe datos cifrados", "TCP/TLS", $tags="port:5432")
+
+' CORRECCIÓN: Se usa BiRel (Bidirectional Relation) para la flecha de vuelta
+BiRel(api, db, "Lee y escribe datos cifrados", "TCP/TLS", $tags="port:5432")
 
 ' AWS SQS se comunica mediante llamadas a la API vía HTTPS, no por AMQP
 Rel(api, broker, "Publica solicitud de triage (PII ofuscado) y eventos", "AWS API / HTTPS", $tags="port:443")
@@ -37,15 +39,9 @@ Rel(broker, worker_ia, "Dispara ejecución de inferencia ESI", "AWS API / HTTPS"
 Rel(worker_ia, broker, "Publica resultado ESI y justificación", "AWS API / HTTPS", $tags="port:443")
 Rel(broker, api, "Consume resultados resueltos (Long polling)", "AWS API / HTTPS", $tags="port:443")
 
-Rel(api, registro_civil, "Solicita validación de RUT", "JSON/HTTPS")
-Rel(api, his_ehr, "Consulta historial clínico (PII minimizado)", "HTTPS/HL7")
-
-note right of api
-  Nota operativa DevSecOps:
-  Se utiliza infraestructura AWS (Free Tier)
-  para cumplir exigencia de SLA 99.5%
-  y normativas de protección de datos.
-end note
+' CORRECCIÓN: Se usa BiRel (Bidirectional Relation) para mostrar que la API recibe respuesta
+BiRel(api, registro_civil, "Solicita y recibe validación de RUT", "JSON/HTTPS")
+BiRel(api, his_ehr, "Consulta y recibe historial clínico (PII minimizado)", "HTTPS/HL7")
 
 SHOW_LEGEND()
 @enduml
