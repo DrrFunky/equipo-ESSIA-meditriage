@@ -1,35 +1,51 @@
-# ADR 0003 · Estilo Cloud y Servicios Gestionados
+@startuml C4_Elements
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Container.puml
 
-## Estado
-Aceptado - 10/09/2026
+LAYOUT_LEFT_RIGHT()
 
-## Contexto
-MediTriage necesita pasar de una arquitectura definida (Monolito Modular) a un despliegue en la nube para probar el MVP. Se requiere cumplir con los NFRs definidos en el ADR 0002: latencia de inferencia <3s (p95), cifrado de PII (Leyes 19.628 y 21.719) y un SLA de 99.5%.
+title Diagrama de Contenedores (C4 Nivel 2) - Sistema MediTriage
+' Actualizado en ADR 0003: tecnologías genéricas reemplazadas por servicios managed de AWS
 
-## Decisión
-Se mantiene el Monolito Modular, pero se desplegará utilizando servicios gestionados de **AWS (Amazon Web Services)**, apoyándonos en la capa gratuita (AWS Free Tier) para mantener los costos controlados durante el MVP.
+Person(paciente, "Paciente", "Ingresa sus síntomas y signos vitales en el tótem o tablet.")
+Person(medico, "Personal Médico", "Enfermera de triage o Médico jefe que revisa el tablero dinámico.")
 
-Los servicios elegidos por contenedor son:
-- Frontend (SPA): AWS Amplify
-- API Backend: AWS Elastic Beanstalk
-- Worker de IA: AWS Lambda
-- Base de Datos (PostgreSQL): Amazon RDS
-- Broker de Mensajería: Amazon SQS
+System_Boundary(meditriage, "MediTriage") {
+    
+    Container(spa, "Aplicación SPA Web", "React / Next.js — AWS Amplify", "Provee la interfaz de usuario para el registro y el tablero dinámico. Desplegado en CDN global con SSL/HTTPS para protección de PII en tránsito.")
+    
+    Container(api, "API Backend", "Python / FastAPI — AWS Elastic Beanstalk", "Orquesta la lógica, maneja WebSockets, ofusca PII y gestiona la comunicación externa. Aislada en VPC privada.")
+    
+    Container(worker_ia, "Servicio de IA (Worker)", "Python — AWS Lambda", "Procesa síntomas de forma asíncrona para sugerir la categorización ESI (1-5) y generar su justificación clínica (Serverless).")
+    
+    ContainerDb(db, "Base de Datos Relacional", "PostgreSQL — Amazon RDS", "Almacena perfiles, consentimientos y estado del triage. Cifrada en reposo con AWS KMS (AES-256).")
+    
+    ContainerQueue(broker, "Broker de Mensajería", "Amazon SQS", "Gestiona las colas de inferencia asíncrona de IA y encola eventos para el audit log inmutable a 5 años.")
+}
 
-## Justificación de los trade-offs
+System_Ext(registro_civil, "Servicio de Registro Civil", "Servicio gubernamental para la validación matemática/identidad del RUT.")
+System_Ext(his_ehr, "Sistema Hospitalario (HIS/EHR)", "Sistema interno de la clínica para consultar antecedentes médicos históricos.")
 
-**Por qué AWS y no PaaS 100% gratuito (Vercel/Render):** 
-Aunque proveedores como Render y Vercel no exigen tarjeta de crédito, sus capas gratuitas sufren de "cold starts" severos tras inactividad. Esto rompe directamente nuestro atributo de calidad de latencia (<3s). AWS (mediante Lambda y Beanstalk) nos da mayor control sobre los tiempos de respuesta clínicos. Además, AWS KMS y las VPC nos entregan el nivel de seguridad y cifrado legal que exige el manejo de datos médicos sensibles (PII).
+Rel(paciente, spa, "Ingresa datos y acepta consentimiento", "HTTPS")
+Rel(medico, spa, "Visualiza tablero priorizado", "HTTPS")
 
-**El riesgo asumido:** 
-AWS Free Tier requiere ingresar una tarjeta de crédito y tiene límites de uso mensual. Se asume el riesgo de posibles cobros menores si el tráfico supera la capa gratuita, priorizando garantizar la disponibilidad (SLA 99.5%) y la velocidad del triage. El equipo mitigará esto configurando alertas de facturación (Billing Alarms).
+Rel(spa, api, "Envía formularios y actualiza tablero en tiempo real", "JSON/HTTPS y WebSockets", $tags="port:443")
+Rel(api, db, "Lee y escribe datos cifrados", "TCP/TLS", $tags="port:5432")
 
-## Consecuencias
-**Gana:**
-- Infraestructura de grado empresarial con un solo proveedor unificado.
-- Cumplimiento estricto de los NFRs de seguridad (cifrado en tránsito y reposo) y latencia clínica.
-- Escalabilidad automática asegurada para el Worker de IA mediante Lambda.
+' AWS SQS se comunica mediante llamadas a la API vía HTTPS, no por AMQP
+Rel(api, broker, "Publica solicitud de triage (PII ofuscado) y eventos", "AWS API / HTTPS", $tags="port:443")
+Rel(broker, worker_ia, "Dispara ejecución de inferencia ESI", "AWS API / HTTPS", $tags="port:443")
+Rel(worker_ia, broker, "Publica resultado ESI y justificación", "AWS API / HTTPS", $tags="port:443")
+Rel(broker, api, "Consume resultados resueltos (Long polling)", "AWS API / HTTPS", $tags="port:443")
 
-**Pierde / se vuelve más difícil:**
-- Riesgo financiero: requiere monitoreo activo de costos (FinOps) para evitar sorpresas en la tarjeta de crédito.
-- Mayor curva de aprendizaje para el equipo al configurar redes privadas (VPC) y permisos (IAM) en comparación con un PaaS simple.
+Rel(api, registro_civil, "Solicita validación de RUT", "JSON/HTTPS")
+Rel(api, his_ehr, "Consulta historial clínico (PII minimizado)", "HTTPS/HL7")
+
+note right of api
+  Nota operativa DevSecOps:
+  Se utiliza infraestructura AWS (Free Tier)
+  para cumplir exigencia de SLA 99.5%
+  y normativas de protección de datos.
+end note
+
+SHOW_LEGEND()
+@enduml
