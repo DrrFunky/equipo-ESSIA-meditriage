@@ -1,40 +1,35 @@
-@startuml C4_Elements
-!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Container.puml
+# ADR 0003 · Estilo Cloud y Servicios Gestionados
 
-title Diagrama de Contenedores (C4 Nivel 2) - Sistema MediTriage
+## Estado
+Aceptado - 10/09/2026
 
-Person(paciente, "Paciente", "Ingresa sus síntomas y signos vitales en el tótem o tablet.")
-Person(medico, "Personal Médico", "Enfermera de triage o Médico jefe que revisa el tablero dinámico.")
+## Contexto
+MediTriage necesita pasar de una arquitectura definida (Monolito Modular) a un despliegue en la nube para probar el MVP. Se requiere cumplir con los NFRs definidos en el ADR 0002: latencia de inferencia <3s (p95), cifrado de PII (Leyes 19.628 y 21.719) y un SLA de 99.5%.
 
-System_Boundary(meditriage, "MediTriage") {
-    
-    Container(spa, "Aplicación SPA Web", "React / Next.js", "Provee la interfaz de usuario para el registro y el tablero dinámico del personal médico.")
-    
-    Container(api, "API Backend", "Python / FastAPI", "Orquesta la lógica, maneja WebSockets, ofusca PII y gestiona la comunicación con sistemas externos.")
-    
-    Container(worker_ia, "Servicio de IA (Worker)", "Python", "Procesa síntomas de forma asíncrona para sugerir la categorización ESI (1-5) y generar su justificación clínica.")
-    
-    ContainerDb(db, "Base de Datos Relacional", "PostgreSQL", "Almacena perfiles, consentimientos y estado del triage. Cifrada en reposo (AES-256).")
-    
-    ContainerQueue(broker, "Broker de Mensajería", "RabbitMQ / Kafka", "Gestiona las colas de inferencia asíncrona de IA y encola eventos para el audit log inmutable a 5 años.")
-}
+## Decisión
+Se mantiene el Monolito Modular, pero se desplegará utilizando servicios gestionados de **AWS (Amazon Web Services)**, apoyándonos en la capa gratuita (AWS Free Tier) para mantener los costos controlados durante el MVP.
 
-System_Ext(registro_civil, "Servicio de Registro Civil", "Servicio gubernamental para la validación matemática/identidad del RUT.")
-System_Ext(his_ehr, "Sistema Hospitalario (HIS/EHR)", "Sistema interno de la clínica para consultar antecedentes médicos históricos.")
+Los servicios elegidos por contenedor son:
+- Frontend (SPA): AWS Amplify
+- API Backend: AWS Elastic Beanstalk
+- Worker de IA: AWS Lambda
+- Base de Datos (PostgreSQL): Amazon RDS
+- Broker de Mensajería: Amazon SQS
 
-Rel(paciente, spa, "Ingresa datos y acepta consentimiento", "HTTPS")
-Rel(medico, spa, "Visualiza tablero priorizado", "HTTPS")
+## Justificación de los trade-offs
 
-Rel(spa, api, "Envía formularios y actualiza tablero en tiempo real", "JSON/HTTPS y WebSockets", $tags="port:443")
-Rel(api, db, "Lee y escribe datos cifrados", "TCP/TLS", $tags="port:5432")
+**Por qué AWS y no PaaS 100% gratuito (Vercel/Render):** 
+Aunque proveedores como Render y Vercel no exigen tarjeta de crédito, sus capas gratuitas sufren de "cold starts" severos tras inactividad. Esto rompe directamente nuestro atributo de calidad de latencia (<3s). AWS (mediante Lambda y Beanstalk) nos da mayor control sobre los tiempos de respuesta clínicos. Además, AWS KMS y las VPC nos entregan el nivel de seguridad y cifrado legal que exige el manejo de datos médicos sensibles (PII).
 
-Rel(api, broker, "Publica solicitud de triage (PII ofuscado) y eventos de auditoría", "AMQP/TCP", $tags="port:5672")
-Rel(broker, worker_ia, "Consume solicitudes de inferencia ESI", "AMQP/TCP", $tags="port:5672")
-Rel(worker_ia, broker, "Publica resultado ESI y justificación clínica", "AMQP/TCP", $tags="port:5672")
-Rel(broker, api, "Consume resultados resueltos para notificar vía WebSockets", "AMQP/TCP", $tags="port:5672")
+**El riesgo asumido:** 
+AWS Free Tier requiere ingresar una tarjeta de crédito y tiene límites de uso mensual. Se asume el riesgo de posibles cobros menores si el tráfico supera la capa gratuita, priorizando garantizar la disponibilidad (SLA 99.5%) y la velocidad del triage. El equipo mitigará esto configurando alertas de facturación (Billing Alarms).
 
-Rel(api, registro_civil, "Solicita validación de RUT", "JSON/HTTPS")
-Rel(api, his_ehr, "Consulta historial clínico (PII minimizado)", "HTTPS/HL7")
+## Consecuencias
+**Gana:**
+- Infraestructura de grado empresarial con un solo proveedor unificado.
+- Cumplimiento estricto de los NFRs de seguridad (cifrado en tránsito y reposo) y latencia clínica.
+- Escalabilidad automática asegurada para el Worker de IA mediante Lambda.
 
-SHOW_LEGEND()
-@enduml
+**Pierde / se vuelve más difícil:**
+- Riesgo financiero: requiere monitoreo activo de costos (FinOps) para evitar sorpresas en la tarjeta de crédito.
+- Mayor curva de aprendizaje para el equipo al configurar redes privadas (VPC) y permisos (IAM) en comparación con un PaaS simple.
