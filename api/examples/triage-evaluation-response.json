@@ -1,0 +1,8 @@
+{
+  "id": "tr-9f8e7d6c",
+  "patientId": "pt-8a7b6c5d",
+  "status": "ai_suggested",
+  "esiCategory": 2,
+  "justification": "El paciente presenta dolor torácico agudo acompañado de taquicardia y desaturación leve, indicando alto riesgo.",
+  "confirmedByNurse": false
+}
