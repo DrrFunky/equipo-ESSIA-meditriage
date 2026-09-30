@@ -10,10 +10,12 @@ rules:
       function: truthy
     severity: error
 
-  # Regla 2: Exigir Idempotency-Key en los POST
+  # Regla 2: Exigir Idempotency-Key en mutaciones (POST y PATCH)
   require-idempotency-key:
-    description: Todos los endpoints POST deben requerir el header Idempotency-Key.
-    given: $.paths..post.parameters
+    description: Todos los endpoints POST y PATCH deben requerir el header Idempotency-Key para evitar operaciones duplicadas.
+    given: 
+      - "$.paths..post.parameters"
+      - "$.paths..patch.parameters"
     then:
       field: name
       function: pattern
