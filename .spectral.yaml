@@ -1,0 +1,32 @@
+extends: ["spectral:oas", "spectral:oas3"]
+
+rules:
+  # Regla 1: Exigir estándar de errores RFC 7807
+  rfc7807-error-responses:
+    description: Las respuestas de error (4xx, 5xx) deben devolver application/problem+json según RFC 7807.
+    given: $.paths..responses[?(@property >= 400 && @property < 600)].content
+    then:
+      field: "application/problem+json"
+      function: truthy
+    severity: error
+
+  # Regla 2: Exigir Idempotency-Key en los POST
+  require-idempotency-key:
+    description: Todos los endpoints POST deben requerir el header Idempotency-Key.
+    given: $.paths..post.parameters
+    then:
+      field: name
+      function: pattern
+      functionOptions:
+        match: "^Idempotency-Key$"
+    severity: warn
+
+  # Regla 3: Rutas RESTful maduras (Kebab-case, sin verbos)
+  paths-kebab-case:
+    description: Las rutas deben usar kebab-case y no contener verbos de acción.
+    given: $.paths[*]~
+    then:
+      function: pattern
+      functionOptions:
+        match: "^(/[a-z0-9-]+)+$"
+    severity: error
