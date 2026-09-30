@@ -12,6 +12,10 @@ servers:
   - url: https://api.meditriage.example.com/v1
     description: Servidor de producción (placeholder)
 
+# Regla de seguridad global: todos los endpoints requerirán este token
+security:
+  - BearerAuth: []
+
 paths:
   /patients:
     post:
@@ -218,6 +222,13 @@ paths:
                       format: date-time
 
 components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: "Token JWT para la autenticación segura del personal médico y pacientes."
+
   schemas:
     PatientRegistration:
       type: object
