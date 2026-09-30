@@ -1,0 +1,318 @@
+openapi: 3.1.0
+info:
+  title: MediTriage API
+  description: >
+    API para el sistema de apoyo a la priorización clínica MediTriage.
+    Permite el registro de pacientes, la solicitud de evaluaciones de
+    triage asistidas por IA, la consulta del tablero priorizado en
+    tiempo real, y la auditoría de decisiones automatizadas.
+  version: 1.0.0
+
+servers:
+  - url: https://api.meditriage.example.com/v1
+    description: Servidor de producción (placeholder)
+
+paths:
+  /patients:
+    post:
+      summary: Registrar un nuevo paciente
+      description: >
+        Registra un paciente (mapea Historia 3: registro y validación de
+        RUT) junto con el check explícito de consentimiento informado.
+        Historia Must Have según priorización MoSCoW — obligatoria por
+        la Ley 19.628 para procesar datos sensibles de salud.
+      operationId: registerPatient
+      parameters:
+        - name: Idempotency-Key
+          in: header
+          required: true
+          description: >
+            Clave única generada por el cliente para evitar registros
+            duplicados si la solicitud se reenvía (ej. por mala conexión).
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatientRegistration'
+            examples:
+              patientRegistrationExample:
+                summary: Ejemplo de registro de paciente
+                $ref: './examples/create-patient-request.json'
+      responses:
+        '201':
+          description: Paciente registrado exitosamente
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PatientRegistration'
+        '400':
+          description: Datos de registro inválidos
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/RFC7807Error'
+        '409':
+          description: Conflicto de idempotencia (solicitud duplicada con datos distintos)
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/RFC7807Error'
+
+  /triage-evaluations:
+    post:
+      summary: Solicitar una evaluación de triage asistida por IA
+      description: >
+        Envía los signos vitales y síntomas del paciente para que el
+        motor de IA sugiera la categoría ESI y su justificación clínica
+        (mapea Historias 1 y 2: Sugerencia ESI automatizada y
+        Justificación clínica explicable).
+      operationId: createTriageEvaluation
+      parameters:
+        - name: Idempotency-Key
+          in: header
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - patientId
+                - vitalSigns
+              properties:
+                patientId:
+                  type: string
+                  format: uuid
+                vitalSigns:
+                  type: object
+                  description: Signos vitales y síntomas reportados.
+            examples:
+              submitTriageExample:
+                summary: Ejemplo de solicitud de evaluación de triage
+                $ref: './examples/submit-triage-request.json'
+      responses:
+        '202':
+          description: Evaluación aceptada y encolada para procesamiento asíncrono
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TriageResult'
+              examples:
+                triageEvaluationResponseExample:
+                  summary: Ejemplo de resultado de evaluación de triage
+                  $ref: './examples/triage-evaluation-response.json'
+        '400':
+          description: Datos de evaluación inválidos
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/RFC7807Error'
+
+  /triage-evaluations/{id}:
+    patch:
+      summary: Confirmar o aplicar fallback manual sobre una evaluación
+      description: >
+        Permite a la enfermera de triage confirmar la sugerencia ESI
+        generada por la IA, o aplicar el fallback manual si el motor de
+        IA no respondió. Este endpoint no corresponde a una historia
+        explícita del backlog de la S02, sino que implementa el
+        requisito de disponibilidad con fallback manual definido en el
+        ADR 0002 (NFR de Martín G.: SLA 99.5% + fallback si el motor de
+        IA falla).
+      operationId: updateTriageEvaluation
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: Idempotency-Key
+          in: header
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                confirmedByNurse:
+                  type: boolean
+                manualEsiCategory:
+                  type: integer
+                  minimum: 1
+                  maximum: 5
+                  description: Categoría ESI asignada manualmente si aplica fallback.
+      responses:
+        '200':
+          description: Evaluación actualizada
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TriageResult'
+        '404':
+          description: Evaluación no encontrada
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/RFC7807Error'
+
+  /triage-board:
+    get:
+      summary: Consultar el tablero de pacientes priorizados
+      description: >
+        Devuelve el listado de pacientes priorizados en tiempo real
+        (mapea Historia 4, tablero dinámico del médico jefe). Historia
+        Must Have según priorización MoSCoW.
+      operationId: getTriageBoard
+      responses:
+        '200':
+          description: Listado de pacientes priorizados
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/TriageResult'
+
+  /audit-logs:
+    get:
+      summary: Consultar el registro de auditoría de decisiones IA
+      description: >
+        Devuelve el registro inmutable de recomendaciones de la IA para
+        fines de trazabilidad (mapea Historia 5, retención de 5 años).
+        Historia Must Have — crítica para cumplir la Ley 21.719.
+      operationId: getAuditLogs
+      parameters:
+        - name: from
+          in: query
+          required: false
+          schema:
+            type: string
+            format: date
+        - name: to
+          in: query
+          required: false
+          schema:
+            type: string
+            format: date
+      responses:
+        '200':
+          description: Registro de auditoría
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    evaluationId:
+                      type: string
+                      format: uuid
+                    esiCategory:
+                      type: integer
+                    justification:
+                      type: string
+                    timestamp:
+                      type: string
+                      format: date-time
+
+components:
+  schemas:
+    PatientRegistration:
+      type: object
+      description: >
+        Payload con los datos del paciente y el check explícito de
+        consentimiento informado.
+      required:
+        - rut
+        - fullName
+        - consentGiven
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        rut:
+          type: string
+          description: RUT chileno del paciente, validado.
+          example: "12.345.678-9"
+        fullName:
+          type: string
+        vitalSigns:
+          type: object
+          description: Signos vitales iniciales al momento del registro.
+        consentGiven:
+          type: boolean
+          description: >
+            Check explícito de consentimiento informado (obligatorio
+            antes de procesar cualquier dato clínico).
+
+    TriageResult:
+      type: object
+      description: >
+        Objeto que contiene la categoría ESI calculada por la IA
+        (Historia 1) y su justificación clínica explicable en el campo
+        `justification` (Historia 2 — Should Have: evita el efecto
+        "caja negra" de la IA y da confianza a la enfermera).
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        patientId:
+          type: string
+          format: uuid
+        esiCategory:
+          type: integer
+          minimum: 1
+          maximum: 5
+          description: Categoría ESI sugerida (1 = más crítico, 5 = menos urgente).
+        justification:
+          type: string
+          description: >
+            Explicación clínica legible de por qué se sugirió esa
+            categoría (implementa Historia 2).
+        confirmedByNurse:
+          type: boolean
+          default: false
+        status:
+          type: string
+          enum: [pending, ai_suggested, confirmed, manual_fallback]
+
+    RFC7807Error:
+      type: object
+      description: >
+        Esquema de manejo de errores estructurado según RFC 7807
+        (Problem Details for HTTP APIs).
+      properties:
+        type:
+          type: string
+          format: uri
+          description: URI que identifica el tipo de error.
+          example: "https://meditriage.example.com/errors/validation-error"
+        title:
+          type: string
+          example: "Datos de registro inválidos"
+        status:
+          type: integer
+          example: 400
+        detail:
+          type: string
+          example: "El campo 'rut' no cumple con el formato esperado."
+        instance:
+          type: string
+          format: uri
+          example: "/v1/patients"
