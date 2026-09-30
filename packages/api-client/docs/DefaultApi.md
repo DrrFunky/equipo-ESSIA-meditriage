@@ -31,11 +31,7 @@ import type { CreateTriageEvaluationOperationRequest } from '';
 
 async function example() {
   console.log("🚀 Testing  SDK...");
-  const config = new Configuration({ 
-    // Configure HTTP bearer authorization: BearerAuth
-    accessToken: "YOUR BEARER TOKEN",
-  });
-  const api = new DefaultApi(config);
+  const api = new DefaultApi();
 
   const body = {
     // string
@@ -70,7 +66,7 @@ example().catch(console.error);
 
 ### Authorization
 
-[BearerAuth](../README.md#BearerAuth)
+No authorization required
 
 ### HTTP request headers
 
@@ -93,7 +89,7 @@ example().catch(console.error);
 
 Consultar el registro de auditoría de decisiones IA
 
-Devuelve el registro inmutable de recomendaciones de la IA para fines de trazabilidad. 
+Devuelve el registro inmutable de recomendaciones de la IA para fines de trazabilidad (mapea Historia 5, retención de 5 años). Historia Must Have — crítica para cumplir la Ley 21.719. 
 
 ### Example
 
@@ -106,11 +102,7 @@ import type { GetAuditLogsRequest } from '';
 
 async function example() {
   console.log("🚀 Testing  SDK...");
-  const config = new Configuration({ 
-    // Configure HTTP bearer authorization: BearerAuth
-    accessToken: "YOUR BEARER TOKEN",
-  });
-  const api = new DefaultApi(config);
+  const api = new DefaultApi();
 
   const body = {
     // Date (optional)
@@ -145,7 +137,7 @@ example().catch(console.error);
 
 ### Authorization
 
-[BearerAuth](../README.md#BearerAuth)
+No authorization required
 
 ### HTTP request headers
 
@@ -167,7 +159,7 @@ example().catch(console.error);
 
 Consultar el tablero de pacientes priorizados
 
-Devuelve el listado de pacientes priorizados en tiempo real. 
+Devuelve el listado de pacientes priorizados en tiempo real (mapea Historia 4, tablero dinámico del médico jefe). Historia Must Have según priorización MoSCoW. 
 
 ### Example
 
@@ -180,11 +172,7 @@ import type { GetTriageBoardRequest } from '';
 
 async function example() {
   console.log("🚀 Testing  SDK...");
-  const config = new Configuration({ 
-    // Configure HTTP bearer authorization: BearerAuth
-    accessToken: "YOUR BEARER TOKEN",
-  });
-  const api = new DefaultApi(config);
+  const api = new DefaultApi();
 
   try {
     const data = await api.getTriageBoard();
@@ -208,7 +196,7 @@ This endpoint does not need any parameter.
 
 ### Authorization
 
-[BearerAuth](../README.md#BearerAuth)
+No authorization required
 
 ### HTTP request headers
 
@@ -243,11 +231,7 @@ import type { RegisterPatientRequest } from '';
 
 async function example() {
   console.log("🚀 Testing  SDK...");
-  const config = new Configuration({ 
-    // Configure HTTP bearer authorization: BearerAuth
-    accessToken: "YOUR BEARER TOKEN",
-  });
-  const api = new DefaultApi(config);
+  const api = new DefaultApi();
 
   const body = {
     // string | Clave única generada por el cliente para evitar registros duplicados si la solicitud se reenvía (ej. por mala conexión). 
@@ -282,7 +266,7 @@ example().catch(console.error);
 
 ### Authorization
 
-[BearerAuth](../README.md#BearerAuth)
+No authorization required
 
 ### HTTP request headers
 
@@ -306,7 +290,7 @@ example().catch(console.error);
 
 Confirmar o aplicar fallback manual sobre una evaluación
 
-Permite a la enfermera de triage confirmar la sugerencia ESI generada por la IA, o aplicar el fallback manual si el motor de IA no respondió. 
+Permite a la enfermera de triage confirmar la sugerencia ESI generada por la IA, o aplicar el fallback manual si el motor de IA no respondió. Este endpoint no corresponde a una historia explícita del backlog de la S02, sino que implementa el requisito de disponibilidad con fallback manual definido en el ADR 0002 (NFR de Martín G.: SLA 99.5% + fallback si el motor de IA falla). 
 
 ### Example
 
@@ -319,11 +303,7 @@ import type { UpdateTriageEvaluationOperationRequest } from '';
 
 async function example() {
   console.log("🚀 Testing  SDK...");
-  const config = new Configuration({ 
-    // Configure HTTP bearer authorization: BearerAuth
-    accessToken: "YOUR BEARER TOKEN",
-  });
-  const api = new DefaultApi(config);
+  const api = new DefaultApi();
 
   const body = {
     // string
@@ -361,7 +341,7 @@ example().catch(console.error);
 
 ### Authorization
 
-[BearerAuth](../README.md#BearerAuth)
+No authorization required
 
 ### HTTP request headers
 

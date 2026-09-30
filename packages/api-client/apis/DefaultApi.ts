@@ -126,14 +126,6 @@ export class DefaultApi extends runtime.BaseAPI {
             headerParameters['Idempotency-Key'] = String(requestParameters['idempotencyKey']);
         }
 
-        if (this.configuration && this.configuration.accessToken) {
-            const token = this.configuration.accessToken;
-            const tokenString = await token("BearerAuth", []);
-
-            if (tokenString) {
-                headerParameters["Authorization"] = `Bearer ${tokenString}`;
-            }
-        }
 
         let urlPath = `/triage-evaluations`;
 
@@ -182,14 +174,6 @@ export class DefaultApi extends runtime.BaseAPI {
 
         const headerParameters: runtime.HTTPHeaders = {};
 
-        if (this.configuration && this.configuration.accessToken) {
-            const token = this.configuration.accessToken;
-            const tokenString = await token("BearerAuth", []);
-
-            if (tokenString) {
-                headerParameters["Authorization"] = `Bearer ${tokenString}`;
-            }
-        }
 
         let urlPath = `/audit-logs`;
 
@@ -202,7 +186,7 @@ export class DefaultApi extends runtime.BaseAPI {
     }
 
     /**
-     * Devuelve el registro inmutable de recomendaciones de la IA para fines de trazabilidad. 
+     * Devuelve el registro inmutable de recomendaciones de la IA para fines de trazabilidad (mapea Historia 5, retención de 5 años). Historia Must Have — crítica para cumplir la Ley 21.719. 
      * Consultar el registro de auditoría de decisiones IA
      */
     async getAuditLogsRaw(requestParameters: GetAuditLogsRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<Array<GetAuditLogs200ResponseInner>>> {
@@ -213,7 +197,7 @@ export class DefaultApi extends runtime.BaseAPI {
     }
 
     /**
-     * Devuelve el registro inmutable de recomendaciones de la IA para fines de trazabilidad. 
+     * Devuelve el registro inmutable de recomendaciones de la IA para fines de trazabilidad (mapea Historia 5, retención de 5 años). Historia Must Have — crítica para cumplir la Ley 21.719. 
      * Consultar el registro de auditoría de decisiones IA
      */
     async getAuditLogs(requestParameters: GetAuditLogsRequest = {}, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<Array<GetAuditLogs200ResponseInner>> {
@@ -229,14 +213,6 @@ export class DefaultApi extends runtime.BaseAPI {
 
         const headerParameters: runtime.HTTPHeaders = {};
 
-        if (this.configuration && this.configuration.accessToken) {
-            const token = this.configuration.accessToken;
-            const tokenString = await token("BearerAuth", []);
-
-            if (tokenString) {
-                headerParameters["Authorization"] = `Bearer ${tokenString}`;
-            }
-        }
 
         let urlPath = `/triage-board`;
 
@@ -249,7 +225,7 @@ export class DefaultApi extends runtime.BaseAPI {
     }
 
     /**
-     * Devuelve el listado de pacientes priorizados en tiempo real. 
+     * Devuelve el listado de pacientes priorizados en tiempo real (mapea Historia 4, tablero dinámico del médico jefe). Historia Must Have según priorización MoSCoW. 
      * Consultar el tablero de pacientes priorizados
      */
     async getTriageBoardRaw(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<Array<TriageResult>>> {
@@ -260,7 +236,7 @@ export class DefaultApi extends runtime.BaseAPI {
     }
 
     /**
-     * Devuelve el listado de pacientes priorizados en tiempo real. 
+     * Devuelve el listado de pacientes priorizados en tiempo real (mapea Historia 4, tablero dinámico del médico jefe). Historia Must Have según priorización MoSCoW. 
      * Consultar el tablero de pacientes priorizados
      */
     async getTriageBoard(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<Array<TriageResult>> {
@@ -296,14 +272,6 @@ export class DefaultApi extends runtime.BaseAPI {
             headerParameters['Idempotency-Key'] = String(requestParameters['idempotencyKey']);
         }
 
-        if (this.configuration && this.configuration.accessToken) {
-            const token = this.configuration.accessToken;
-            const tokenString = await token("BearerAuth", []);
-
-            if (tokenString) {
-                headerParameters["Authorization"] = `Bearer ${tokenString}`;
-            }
-        }
 
         let urlPath = `/patients`;
 
@@ -371,14 +339,6 @@ export class DefaultApi extends runtime.BaseAPI {
             headerParameters['Idempotency-Key'] = String(requestParameters['idempotencyKey']);
         }
 
-        if (this.configuration && this.configuration.accessToken) {
-            const token = this.configuration.accessToken;
-            const tokenString = await token("BearerAuth", []);
-
-            if (tokenString) {
-                headerParameters["Authorization"] = `Bearer ${tokenString}`;
-            }
-        }
 
         let urlPath = `/triage-evaluations/{id}`;
         urlPath = urlPath.replace('{id}', encodeURIComponent(String(requestParameters['id'])));
@@ -393,7 +353,7 @@ export class DefaultApi extends runtime.BaseAPI {
     }
 
     /**
-     * Permite a la enfermera de triage confirmar la sugerencia ESI generada por la IA, o aplicar el fallback manual si el motor de IA no respondió. 
+     * Permite a la enfermera de triage confirmar la sugerencia ESI generada por la IA, o aplicar el fallback manual si el motor de IA no respondió. Este endpoint no corresponde a una historia explícita del backlog de la S02, sino que implementa el requisito de disponibilidad con fallback manual definido en el ADR 0002 (NFR de Martín G.: SLA 99.5% + fallback si el motor de IA falla). 
      * Confirmar o aplicar fallback manual sobre una evaluación
      */
     async updateTriageEvaluationRaw(requestParameters: UpdateTriageEvaluationOperationRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<TriageResult>> {
@@ -404,7 +364,7 @@ export class DefaultApi extends runtime.BaseAPI {
     }
 
     /**
-     * Permite a la enfermera de triage confirmar la sugerencia ESI generada por la IA, o aplicar el fallback manual si el motor de IA no respondió. 
+     * Permite a la enfermera de triage confirmar la sugerencia ESI generada por la IA, o aplicar el fallback manual si el motor de IA no respondió. Este endpoint no corresponde a una historia explícita del backlog de la S02, sino que implementa el requisito de disponibilidad con fallback manual definido en el ADR 0002 (NFR de Martín G.: SLA 99.5% + fallback si el motor de IA falla). 
      * Confirmar o aplicar fallback manual sobre una evaluación
      */
     async updateTriageEvaluation(requestParameters: UpdateTriageEvaluationOperationRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<TriageResult> {

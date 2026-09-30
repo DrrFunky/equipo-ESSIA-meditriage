@@ -14,7 +14,7 @@
 
 import { mapValues } from '../runtime';
 /**
- * Esquema de manejo de errores estructurado según RFC 7807.
+ * Esquema de manejo de errores estructurado según RFC 7807 (Problem Details for HTTP APIs).
  * 
  * @export
  * @interface RFC7807Error

@@ -1,7 +1,7 @@
 
 # TriageResult
 
-Objeto que contiene la categoría ESI calculada por la IA y su justificación clínica explicable. 
+Objeto que contiene la categoría ESI calculada por la IA (Historia 1) y su justificación clínica explicable en el campo `justification` (Historia 2 — Should Have: evita el efecto \"caja negra\" de la IA y da confianza a la enfermera). 
 
 ## Properties
 

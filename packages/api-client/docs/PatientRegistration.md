@@ -12,7 +12,6 @@ Name | Type
 `fullName` | string
 `vitalSigns` | object
 `consentGiven` | boolean
-`consentTimestamp` | Date
 
 ## Example
 
@@ -26,7 +25,6 @@ const example = {
   "fullName": null,
   "vitalSigns": null,
   "consentGiven": null,
-  "consentTimestamp": null,
 } satisfies PatientRegistration
 
 console.log(example)

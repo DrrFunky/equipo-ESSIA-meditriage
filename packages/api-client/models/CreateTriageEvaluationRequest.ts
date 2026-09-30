@@ -24,11 +24,7 @@ export interface CreateTriageEvaluationRequest {
      */
     patientId: string;
     /**
-     * Lista de síntomas reportados por el paciente.
-     */
-    symptoms: Array<string>;
-    /**
-     * Signos vitales medidos en el triage.
+     * Signos vitales y síntomas reportados.
      */
     vitalSigns: object;
 }
@@ -38,7 +34,6 @@ export interface CreateTriageEvaluationRequest {
  */
 export function instanceOfCreateTriageEvaluationRequest(value: object): value is CreateTriageEvaluationRequest {
     if (!('patientId' in value) || value['patientId'] === undefined) return false;
-    if (!('symptoms' in value) || value['symptoms'] === undefined) return false;
     if (!('vitalSigns' in value) || value['vitalSigns'] === undefined) return false;
     return true;
 }
@@ -54,7 +49,6 @@ export function CreateTriageEvaluationRequestFromJSONTyped(json: any, ignoreDisc
     return {
         
         'patientId': json['patientId'],
-        'symptoms': json['symptoms'],
         'vitalSigns': json['vitalSigns'],
     };
 }
@@ -71,7 +65,6 @@ export function CreateTriageEvaluationRequestToJSONTyped(value?: CreateTriageEva
     return {
         
         'patientId': value['patientId'],
-        'symptoms': value['symptoms'],
         'vitalSigns': value['vitalSigns'],
     };
 }

@@ -12,7 +12,7 @@
  * Do not edit the class manually.
  */
 
-import { mapValues, parseDate, parseDateTime, serializeDate, serializeDateTime } from '../runtime';
+import { mapValues } from '../runtime';
 /**
  * Payload con los datos del paciente y el check explícito de consentimiento informado.
  * 
@@ -41,10 +41,6 @@ export interface PatientRegistration {
      * 
      */
     consentGiven: boolean;
-    /**
-     * Marca de tiempo exacta de la aceptación del consentimiento.
-     */
-    consentTimestamp: Date;
 }
 
 /**
@@ -54,7 +50,6 @@ export function instanceOfPatientRegistration(value: object): value is PatientRe
     if (!('rut' in value) || value['rut'] === undefined) return false;
     if (!('fullName' in value) || value['fullName'] === undefined) return false;
     if (!('consentGiven' in value) || value['consentGiven'] === undefined) return false;
-    if (!('consentTimestamp' in value) || value['consentTimestamp'] === undefined) return false;
     return true;
 }
 
@@ -73,7 +68,6 @@ export function PatientRegistrationFromJSONTyped(json: any, ignoreDiscriminator:
         'fullName': json['fullName'],
         'vitalSigns': json['vitalSigns'] == null ? undefined : json['vitalSigns'],
         'consentGiven': json['consentGiven'],
-        'consentTimestamp': (json['consentTimestamp'] == null ? json['consentTimestamp'] : parseDateTime(json['consentTimestamp'])),
     };
 }
 
@@ -92,7 +86,6 @@ export function PatientRegistrationToJSONTyped(value?: Omit<PatientRegistration,
         'fullName': value['fullName'],
         'vitalSigns': value['vitalSigns'],
         'consentGiven': value['consentGiven'],
-        'consentTimestamp': value['consentTimestamp'] == null ? value['consentTimestamp'] : serializeDateTime(value['consentTimestamp']),
     };
 }
 
