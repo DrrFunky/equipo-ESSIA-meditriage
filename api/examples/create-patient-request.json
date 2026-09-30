@@ -1,6 +1,6 @@
 {
   "rut": "12345678-5",
-  "full_name": "Juan Pérez González",
-  "consent_signed": true,
-  "consent_timestamp": "2026-09-30T14:10:00Z"
+  "fullName": "Juan Pérez González",
+  "consentGiven": true,
+  "consentTimestamp": "2026-09-30T14:10:00Z"
 }
