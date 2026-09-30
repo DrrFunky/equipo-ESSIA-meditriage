@@ -1,0 +1,7 @@
+{
+  "type": "https://api.meditriage.cl/errors/invalid-rut",
+  "title": "Invalid RUT Format",
+  "status": 422,
+  "detail": "El RUT ingresado no cumple con el formato válido o su dígito verificador es incorrecto según el Servicio de Registro Civil.",
+  "instance": "/v1/patients"
+}

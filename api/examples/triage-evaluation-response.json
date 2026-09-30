@@ -1,0 +1,9 @@
+{
+  "triage_id": "tr-9f8e7d6c",
+  "patient_id": "pt-8a7b6c5d",
+  "status": "completed",
+  "esi_category": 2,
+  "clinical_reasoning": "El paciente presenta dolor torácico agudo acompañado de taquicardia (115 lpm) y desaturación leve (92%), lo que indica una situación de alto riesgo que requiere atención inmediata.",
+  "evaluated_by_ai": true,
+  "created_at": "2026-09-30T14:15:30Z"
+}
