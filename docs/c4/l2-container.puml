@@ -1,22 +1,25 @@
 @startuml C4_Elements
 !include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Container.puml
 
+LAYOUT_LEFT_RIGHT()
+
 title Diagrama de Contenedores (C4 Nivel 2) - Sistema MediTriage
+' Actualizado en ADR 0003: tecnologías genéricas reemplazadas por servicios managed de AWS
 
 Person(paciente, "Paciente", "Ingresa sus síntomas y signos vitales en el tótem o tablet.")
 Person(medico, "Personal Médico", "Enfermera de triage o Médico jefe que revisa el tablero dinámico.")
 
 System_Boundary(meditriage, "MediTriage") {
     
-    Container(spa, "Aplicación SPA Web", "React / Next.js", "Provee la interfaz de usuario para el registro y el tablero dinámico del personal médico.")
+    Container(spa, "Aplicación SPA Web", "React / Next.js — AWS Amplify", "Provee la interfaz de usuario para el registro y el tablero dinámico. Desplegado en CDN global con SSL/HTTPS para protección de PII en tránsito.")
     
-    Container(api, "API Backend", "Python / FastAPI", "Orquesta la lógica, maneja WebSockets, ofusca PII y gestiona la comunicación con sistemas externos.")
+    Container(api, "API Backend", "Python / FastAPI — AWS Elastic Beanstalk", "Orquesta la lógica, maneja WebSockets, ofusca PII y gestiona la comunicación externa. Aislada en VPC privada.")
     
-    Container(worker_ia, "Servicio de IA (Worker)", "Python", "Procesa síntomas de forma asíncrona para sugerir la categorización ESI (1-5) y generar su justificación clínica.")
+    Container(worker_ia, "Servicio de IA (Worker)", "Python — AWS Lambda", "Procesa síntomas de forma asíncrona para sugerir la categorización ESI (1-5) y generar su justificación clínica (Serverless).")
     
-    ContainerDb(db, "Base de Datos Relacional", "PostgreSQL", "Almacena perfiles, consentimientos y estado del triage. Cifrada en reposo (AES-256).")
+    ContainerDb(db, "Base de Datos Relacional", "PostgreSQL — Amazon RDS", "Almacena perfiles, consentimientos y estado del triage. Cifrada en reposo con AWS KMS (AES-256).")
     
-    ContainerQueue(broker, "Broker de Mensajería", "RabbitMQ / Kafka", "Gestiona las colas de inferencia asíncrona de IA y encola eventos para el audit log inmutable a 5 años.")
+    ContainerQueue(broker, "Broker de Mensajería", "Amazon SQS", "Gestiona las colas de inferencia asíncrona de IA y encola eventos para el audit log inmutable a 5 años.")
 }
 
 System_Ext(registro_civil, "Servicio de Registro Civil", "Servicio gubernamental para la validación matemática/identidad del RUT.")
@@ -26,15 +29,19 @@ Rel(paciente, spa, "Ingresa datos y acepta consentimiento", "HTTPS")
 Rel(medico, spa, "Visualiza tablero priorizado", "HTTPS")
 
 Rel(spa, api, "Envía formularios y actualiza tablero en tiempo real", "JSON/HTTPS y WebSockets", $tags="port:443")
-Rel(api, db, "Lee y escribe datos cifrados", "TCP/TLS", $tags="port:5432")
 
-Rel(api, broker, "Publica solicitud de triage (PII ofuscado) y eventos de auditoría", "AMQP/TCP", $tags="port:5672")
-Rel(broker, worker_ia, "Consume solicitudes de inferencia ESI", "AMQP/TCP", $tags="port:5672")
-Rel(worker_ia, broker, "Publica resultado ESI y justificación clínica", "AMQP/TCP", $tags="port:5672")
-Rel(broker, api, "Consume resultados resueltos para notificar vía WebSockets", "AMQP/TCP", $tags="port:5672")
+' CORRECCIÓN: Se usa BiRel (Bidirectional Relation) para la flecha de vuelta
+BiRel(api, db, "Lee y escribe datos cifrados", "TCP/TLS", $tags="port:5432")
 
-Rel(api, registro_civil, "Solicita validación de RUT", "JSON/HTTPS")
-Rel(api, his_ehr, "Consulta historial clínico (PII minimizado)", "HTTPS/HL7")
+' AWS SQS se comunica mediante llamadas a la API vía HTTPS, no por AMQP
+Rel(api, broker, "Publica solicitud de triage (PII ofuscado) y eventos", "AWS API / HTTPS", $tags="port:443")
+Rel(broker, worker_ia, "Dispara ejecución de inferencia ESI", "AWS API / HTTPS", $tags="port:443")
+Rel(worker_ia, broker, "Publica resultado ESI y justificación", "AWS API / HTTPS", $tags="port:443")
+Rel(broker, api, "Consume resultados resueltos (Long polling)", "AWS API / HTTPS", $tags="port:443")
+
+' CORRECCIÓN: Se usa BiRel (Bidirectional Relation) para mostrar que la API recibe respuesta
+BiRel(api, registro_civil, "Solicita y recibe validación de RUT", "JSON/HTTPS")
+BiRel(api, his_ehr, "Consulta y recibe historial clínico (PII minimizado)", "HTTPS/HL7")
 
 SHOW_LEGEND()
 @enduml
