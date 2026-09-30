@@ -12,9 +12,6 @@ servers:
   - url: https://api.meditriage.example.com/v1
     description: Servidor de producción (placeholder)
 
-security:
-  - BearerAuth: []
-
 paths:
   /patients:
     post:
@@ -41,6 +38,10 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/PatientRegistration'
+            examples:
+              patientRegistrationExample:
+                summary: Ejemplo de registro de paciente
+                $ref: './examples/create-patient-request.json'
       responses:
         '201':
           description: Paciente registrado exitosamente
@@ -85,20 +86,18 @@ paths:
               type: object
               required:
                 - patientId
-                - symptoms
                 - vitalSigns
               properties:
                 patientId:
                   type: string
                   format: uuid
-                symptoms:
-                  type: array
-                  items:
-                    type: string
-                  description: Lista de síntomas reportados por el paciente.
                 vitalSigns:
                   type: object
-                  description: Signos vitales medidos en el triage.
+                  description: Signos vitales y síntomas reportados.
+            examples:
+              submitTriageExample:
+                summary: Ejemplo de solicitud de evaluación de triage
+                $ref: './examples/submit-triage-request.json'
       responses:
         '202':
           description: Evaluación aceptada y encolada para procesamiento asíncrono
@@ -106,6 +105,10 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/TriageResult'
+              examples:
+                triageEvaluationResponseExample:
+                  summary: Ejemplo de resultado de evaluación de triage
+                  $ref: './examples/triage-evaluation-response.json'
         '400':
           description: Datos de evaluación inválidos
           content:
@@ -119,7 +122,11 @@ paths:
       description: >
         Permite a la enfermera de triage confirmar la sugerencia ESI
         generada por la IA, o aplicar el fallback manual si el motor de
-        IA no respondió.
+        IA no respondió. Este endpoint no corresponde a una historia
+        explícita del backlog de la S02, sino que implementa el
+        requisito de disponibilidad con fallback manual definido en el
+        ADR 0002 (NFR de Martín G.: SLA 99.5% + fallback si el motor de
+        IA falla).
       operationId: updateTriageEvaluation
       parameters:
         - name: id
@@ -166,7 +173,9 @@ paths:
     get:
       summary: Consultar el tablero de pacientes priorizados
       description: >
-        Devuelve el listado de pacientes priorizados en tiempo real.
+        Devuelve el listado de pacientes priorizados en tiempo real
+        (mapea Historia 4, tablero dinámico del médico jefe). Historia
+        Must Have según priorización MoSCoW.
       operationId: getTriageBoard
       responses:
         '200':
@@ -183,7 +192,8 @@ paths:
       summary: Consultar el registro de auditoría de decisiones IA
       description: >
         Devuelve el registro inmutable de recomendaciones de la IA para
-        fines de trazabilidad.
+        fines de trazabilidad (mapea Historia 5, retención de 5 años).
+        Historia Must Have — crítica para cumplir la Ley 21.719.
       operationId: getAuditLogs
       parameters:
         - name: from
@@ -220,13 +230,6 @@ paths:
                       format: date-time
 
 components:
-  securitySchemes:
-    BearerAuth:
-      type: http
-      scheme: bearer
-      bearerFormat: JWT
-      description: "Token JWT para la autenticación segura del personal médico y pacientes."
-
   schemas:
     PatientRegistration:
       type: object
@@ -237,7 +240,6 @@ components:
         - rut
         - fullName
         - consentGiven
-        - consentTimestamp
       properties:
         id:
           type: string
@@ -257,16 +259,14 @@ components:
           description: >
             Check explícito de consentimiento informado (obligatorio
             antes de procesar cualquier dato clínico).
-        consentTimestamp:
-          type: string
-          format: date-time
-          description: Marca de tiempo exacta de la aceptación del consentimiento.
 
     TriageResult:
       type: object
       description: >
         Objeto que contiene la categoría ESI calculada por la IA
-        y su justificación clínica explicable.
+        (Historia 1) y su justificación clínica explicable en el campo
+        `justification` (Historia 2 — Should Have: evita el efecto
+        "caja negra" de la IA y da confianza a la enfermera).
       properties:
         id:
           type: string
@@ -282,7 +282,9 @@ components:
           description: Categoría ESI sugerida (1 = más crítico, 5 = menos urgente).
         justification:
           type: string
-          description: Explicación clínica legible de por qué se sugirió esa categoría.
+          description: >
+            Explicación clínica legible de por qué se sugirió esa
+            categoría (implementa Historia 2).
         confirmedByNurse:
           type: boolean
           default: false
@@ -293,7 +295,8 @@ components:
     RFC7807Error:
       type: object
       description: >
-        Esquema de manejo de errores estructurado según RFC 7807.
+        Esquema de manejo de errores estructurado según RFC 7807
+        (Problem Details for HTTP APIs).
       properties:
         type:
           type: string
