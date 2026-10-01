@@ -14,7 +14,7 @@
 
 import { mapValues } from '../runtime';
 /**
- * Esquema de manejo de errores estructurado según RFC 7807 (Problem Details for HTTP APIs).
+ * Esquema de manejo de errores estructurado según RFC 7807 (Problem Details for HTTP APIs), extendido con trace_id para observabilidad según la Política de Versionado del equipo.
  * 
  * @export
  * @interface RFC7807Error
@@ -40,6 +40,11 @@ export interface RFC7807Error {
      * 
      */
     instance?: string;
+    /**
+     * Identificador único de la traza de la solicitud, para correlacionar logs y facilitar la observabilidad.
+     * 
+     */
+    traceId?: string;
 }
 
 /**
@@ -64,6 +69,7 @@ export function RFC7807ErrorFromJSONTyped(json: any, ignoreDiscriminator: boolea
         'status': json['status'] == null ? undefined : json['status'],
         'detail': json['detail'] == null ? undefined : json['detail'],
         'instance': json['instance'] == null ? undefined : json['instance'],
+        'traceId': json['trace_id'] == null ? undefined : json['trace_id'],
     };
 }
 
@@ -83,6 +89,7 @@ export function RFC7807ErrorToJSONTyped(value?: RFC7807Error | null, ignoreDiscr
         'status': value['status'],
         'detail': value['detail'],
         'instance': value['instance'],
+        'trace_id': value['traceId'],
     };
 }
 

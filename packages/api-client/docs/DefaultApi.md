@@ -18,7 +18,7 @@ All URIs are relative to *https://api.meditriage.example.com/v1*
 
 Solicitar una evaluación de triage asistida por IA
 
-Envía los signos vitales y síntomas del paciente para que el motor de IA sugiera la categoría ESI y su justificación clínica (mapea Historias 1 y 2: Sugerencia ESI automatizada y Justificación clínica explicable). 
+Envía los síntomas y signos vitales del paciente para que el motor de IA sugiera la categoría ESI y su justificación clínica (mapea Historias 1 y 2: Sugerencia ESI automatizada y Justificación clínica explicable). 
 
 ### Example
 
@@ -31,7 +31,11 @@ import type { CreateTriageEvaluationOperationRequest } from '';
 
 async function example() {
   console.log("🚀 Testing  SDK...");
-  const api = new DefaultApi();
+  const config = new Configuration({ 
+    // Configure HTTP bearer authorization: BearerAuth
+    accessToken: "YOUR BEARER TOKEN",
+  });
+  const api = new DefaultApi(config);
 
   const body = {
     // string
@@ -66,7 +70,7 @@ example().catch(console.error);
 
 ### Authorization
 
-No authorization required
+[BearerAuth](../README.md#BearerAuth)
 
 ### HTTP request headers
 
@@ -79,6 +83,7 @@ No authorization required
 |-------------|-------------|------------------|
 | **202** | Evaluación aceptada y encolada para procesamiento asíncrono |  -  |
 | **400** | Datos de evaluación inválidos |  -  |
+| **401** | No autenticado — falta o es inválido el token Bearer |  -  |
 
 [[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
 
@@ -102,7 +107,11 @@ import type { GetAuditLogsRequest } from '';
 
 async function example() {
   console.log("🚀 Testing  SDK...");
-  const api = new DefaultApi();
+  const config = new Configuration({ 
+    // Configure HTTP bearer authorization: BearerAuth
+    accessToken: "YOUR BEARER TOKEN",
+  });
+  const api = new DefaultApi(config);
 
   const body = {
     // Date (optional)
@@ -137,18 +146,20 @@ example().catch(console.error);
 
 ### Authorization
 
-No authorization required
+[BearerAuth](../README.md#BearerAuth)
 
 ### HTTP request headers
 
 - **Content-Type**: Not defined
-- **Accept**: `application/json`
+- **Accept**: `application/json`, `application/problem+json`
 
 
 ### HTTP response details
 | Status code | Description | Response headers |
 |-------------|-------------|------------------|
 | **200** | Registro de auditoría |  -  |
+| **401** | No autenticado — falta o es inválido el token Bearer |  -  |
+| **403** | Autenticado pero sin permisos de auditoría (solo Médico Jefe / Auditor Clínico) |  -  |
 
 [[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
 
@@ -172,7 +183,11 @@ import type { GetTriageBoardRequest } from '';
 
 async function example() {
   console.log("🚀 Testing  SDK...");
-  const api = new DefaultApi();
+  const config = new Configuration({ 
+    // Configure HTTP bearer authorization: BearerAuth
+    accessToken: "YOUR BEARER TOKEN",
+  });
+  const api = new DefaultApi(config);
 
   try {
     const data = await api.getTriageBoard();
@@ -196,18 +211,19 @@ This endpoint does not need any parameter.
 
 ### Authorization
 
-No authorization required
+[BearerAuth](../README.md#BearerAuth)
 
 ### HTTP request headers
 
 - **Content-Type**: Not defined
-- **Accept**: `application/json`
+- **Accept**: `application/json`, `application/problem+json`
 
 
 ### HTTP response details
 | Status code | Description | Response headers |
 |-------------|-------------|------------------|
 | **200** | Listado de pacientes priorizados |  -  |
+| **401** | No autenticado — falta o es inválido el token Bearer |  -  |
 
 [[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
 
@@ -231,7 +247,11 @@ import type { RegisterPatientRequest } from '';
 
 async function example() {
   console.log("🚀 Testing  SDK...");
-  const api = new DefaultApi();
+  const config = new Configuration({ 
+    // Configure HTTP bearer authorization: BearerAuth
+    accessToken: "YOUR BEARER TOKEN",
+  });
+  const api = new DefaultApi(config);
 
   const body = {
     // string | Clave única generada por el cliente para evitar registros duplicados si la solicitud se reenvía (ej. por mala conexión). 
@@ -266,7 +286,7 @@ example().catch(console.error);
 
 ### Authorization
 
-No authorization required
+[BearerAuth](../README.md#BearerAuth)
 
 ### HTTP request headers
 
@@ -279,7 +299,9 @@ No authorization required
 |-------------|-------------|------------------|
 | **201** | Paciente registrado exitosamente |  -  |
 | **400** | Datos de registro inválidos |  -  |
+| **401** | No autenticado — falta o es inválido el token Bearer |  -  |
 | **409** | Conflicto de idempotencia (solicitud duplicada con datos distintos) |  -  |
+| **422** | Entidad no procesable (ej. RUT con formato o dígito verificador inválido) |  -  |
 
 [[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
 
@@ -303,7 +325,11 @@ import type { UpdateTriageEvaluationOperationRequest } from '';
 
 async function example() {
   console.log("🚀 Testing  SDK...");
-  const api = new DefaultApi();
+  const config = new Configuration({ 
+    // Configure HTTP bearer authorization: BearerAuth
+    accessToken: "YOUR BEARER TOKEN",
+  });
+  const api = new DefaultApi(config);
 
   const body = {
     // string
@@ -341,7 +367,7 @@ example().catch(console.error);
 
 ### Authorization
 
-No authorization required
+[BearerAuth](../README.md#BearerAuth)
 
 ### HTTP request headers
 
@@ -353,6 +379,7 @@ No authorization required
 | Status code | Description | Response headers |
 |-------------|-------------|------------------|
 | **200** | Evaluación actualizada |  -  |
+| **401** | No autenticado — falta o es inválido el token Bearer |  -  |
 | **404** | Evaluación no encontrada |  -  |
 
 [[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)

@@ -12,7 +12,7 @@
  * Do not edit the class manually.
  */
 
-import { mapValues } from '../runtime';
+import { mapValues, parseDate, parseDateTime, serializeDate, serializeDateTime } from '../runtime';
 /**
  * Payload con los datos del paciente y el check explícito de consentimiento informado.
  * 
@@ -41,6 +41,11 @@ export interface PatientRegistration {
      * 
      */
     consentGiven: boolean;
+    /**
+     * Fecha y hora exacta en que el paciente otorgó su consentimiento informado.
+     * 
+     */
+    consentTimestamp?: Date;
 }
 
 /**
@@ -68,6 +73,7 @@ export function PatientRegistrationFromJSONTyped(json: any, ignoreDiscriminator:
         'fullName': json['fullName'],
         'vitalSigns': json['vitalSigns'] == null ? undefined : json['vitalSigns'],
         'consentGiven': json['consentGiven'],
+        'consentTimestamp': json['consentTimestamp'] == null ? undefined : (parseDateTime(json['consentTimestamp'])),
     };
 }
 
@@ -86,6 +92,7 @@ export function PatientRegistrationToJSONTyped(value?: Omit<PatientRegistration,
         'fullName': value['fullName'],
         'vitalSigns': value['vitalSigns'],
         'consentGiven': value['consentGiven'],
+        'consentTimestamp': value['consentTimestamp'] == null ? value['consentTimestamp'] : serializeDateTime(value['consentTimestamp']),
     };
 }
 

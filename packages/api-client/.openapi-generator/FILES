@@ -1,6 +1,8 @@
+.openapi-generator-ignore
 apis/DefaultApi.ts
 apis/index.ts
 docs/CreateTriageEvaluationRequest.md
+docs/CreateTriageEvaluationRequestVitalSigns.md
 docs/DefaultApi.md
 docs/GetAuditLogs200ResponseInner.md
 docs/PatientRegistration.md
@@ -9,6 +11,7 @@ docs/TriageResult.md
 docs/UpdateTriageEvaluationRequest.md
 index.ts
 models/CreateTriageEvaluationRequest.ts
+models/CreateTriageEvaluationRequestVitalSigns.ts
 models/GetAuditLogs200ResponseInner.ts
 models/PatientRegistration.ts
 models/RFC7807Error.ts

@@ -126,6 +126,14 @@ export class DefaultApi extends runtime.BaseAPI {
             headerParameters['Idempotency-Key'] = String(requestParameters['idempotencyKey']);
         }
 
+        if (this.configuration && this.configuration.accessToken) {
+            const token = this.configuration.accessToken;
+            const tokenString = await token("BearerAuth", []);
+
+            if (tokenString) {
+                headerParameters["Authorization"] = `Bearer ${tokenString}`;
+            }
+        }
 
         let urlPath = `/triage-evaluations`;
 
@@ -139,7 +147,7 @@ export class DefaultApi extends runtime.BaseAPI {
     }
 
     /**
-     * Envía los signos vitales y síntomas del paciente para que el motor de IA sugiera la categoría ESI y su justificación clínica (mapea Historias 1 y 2: Sugerencia ESI automatizada y Justificación clínica explicable). 
+     * Envía los síntomas y signos vitales del paciente para que el motor de IA sugiera la categoría ESI y su justificación clínica (mapea Historias 1 y 2: Sugerencia ESI automatizada y Justificación clínica explicable). 
      * Solicitar una evaluación de triage asistida por IA
      */
     async createTriageEvaluationRaw(requestParameters: CreateTriageEvaluationOperationRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<TriageResult>> {
@@ -150,7 +158,7 @@ export class DefaultApi extends runtime.BaseAPI {
     }
 
     /**
-     * Envía los signos vitales y síntomas del paciente para que el motor de IA sugiera la categoría ESI y su justificación clínica (mapea Historias 1 y 2: Sugerencia ESI automatizada y Justificación clínica explicable). 
+     * Envía los síntomas y signos vitales del paciente para que el motor de IA sugiera la categoría ESI y su justificación clínica (mapea Historias 1 y 2: Sugerencia ESI automatizada y Justificación clínica explicable). 
      * Solicitar una evaluación de triage asistida por IA
      */
     async createTriageEvaluation(requestParameters: CreateTriageEvaluationOperationRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<TriageResult> {
@@ -174,6 +182,14 @@ export class DefaultApi extends runtime.BaseAPI {
 
         const headerParameters: runtime.HTTPHeaders = {};
 
+        if (this.configuration && this.configuration.accessToken) {
+            const token = this.configuration.accessToken;
+            const tokenString = await token("BearerAuth", []);
+
+            if (tokenString) {
+                headerParameters["Authorization"] = `Bearer ${tokenString}`;
+            }
+        }
 
         let urlPath = `/audit-logs`;
 
@@ -213,6 +229,14 @@ export class DefaultApi extends runtime.BaseAPI {
 
         const headerParameters: runtime.HTTPHeaders = {};
 
+        if (this.configuration && this.configuration.accessToken) {
+            const token = this.configuration.accessToken;
+            const tokenString = await token("BearerAuth", []);
+
+            if (tokenString) {
+                headerParameters["Authorization"] = `Bearer ${tokenString}`;
+            }
+        }
 
         let urlPath = `/triage-board`;
 
@@ -272,6 +296,14 @@ export class DefaultApi extends runtime.BaseAPI {
             headerParameters['Idempotency-Key'] = String(requestParameters['idempotencyKey']);
         }
 
+        if (this.configuration && this.configuration.accessToken) {
+            const token = this.configuration.accessToken;
+            const tokenString = await token("BearerAuth", []);
+
+            if (tokenString) {
+                headerParameters["Authorization"] = `Bearer ${tokenString}`;
+            }
+        }
 
         let urlPath = `/patients`;
 
@@ -339,6 +371,14 @@ export class DefaultApi extends runtime.BaseAPI {
             headerParameters['Idempotency-Key'] = String(requestParameters['idempotencyKey']);
         }
 
+        if (this.configuration && this.configuration.accessToken) {
+            const token = this.configuration.accessToken;
+            const tokenString = await token("BearerAuth", []);
+
+            if (tokenString) {
+                headerParameters["Authorization"] = `Bearer ${tokenString}`;
+            }
+        }
 
         let urlPath = `/triage-evaluations/{id}`;
         urlPath = urlPath.replace('{id}', encodeURIComponent(String(requestParameters['id'])));

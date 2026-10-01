@@ -1,7 +1,7 @@
 
 # RFC7807Error
 
-Esquema de manejo de errores estructurado según RFC 7807 (Problem Details for HTTP APIs). 
+Esquema de manejo de errores estructurado según RFC 7807 (Problem Details for HTTP APIs), extendido con trace_id para observabilidad según la Política de Versionado del equipo. 
 
 ## Properties
 
@@ -12,6 +12,7 @@ Name | Type
 `status` | number
 `detail` | string
 `instance` | string
+`traceId` | string
 
 ## Example
 
@@ -25,6 +26,7 @@ const example = {
   "status": 400,
   "detail": El campo 'rut' no cumple con el formato esperado.,
   "instance": /v1/patients,
+  "traceId": f47ac10b-58cc-4372-a567-0e02b2c3d479,
 } satisfies RFC7807Error
 
 console.log(example)

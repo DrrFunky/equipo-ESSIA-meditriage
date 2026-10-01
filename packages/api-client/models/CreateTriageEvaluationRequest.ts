@@ -13,6 +13,14 @@
  */
 
 import { mapValues } from '../runtime';
+import type { CreateTriageEvaluationRequestVitalSigns } from './CreateTriageEvaluationRequestVitalSigns';
+import {
+    CreateTriageEvaluationRequestVitalSignsFromJSON,
+    CreateTriageEvaluationRequestVitalSignsFromJSONTyped,
+    CreateTriageEvaluationRequestVitalSignsToJSON,
+    CreateTriageEvaluationRequestVitalSignsToJSONTyped,
+} from './CreateTriageEvaluationRequestVitalSigns';
+
 /**
  * 
  * @export
@@ -24,9 +32,13 @@ export interface CreateTriageEvaluationRequest {
      */
     patientId: string;
     /**
-     * Signos vitales y síntomas reportados.
+     * Lista de síntomas reportados por el paciente o el personal de triage.
      */
-    vitalSigns: object;
+    symptoms?: Array<string>;
+    /**
+     * 
+     */
+    vitalSigns: CreateTriageEvaluationRequestVitalSigns;
 }
 
 /**
@@ -49,7 +61,8 @@ export function CreateTriageEvaluationRequestFromJSONTyped(json: any, ignoreDisc
     return {
         
         'patientId': json['patientId'],
-        'vitalSigns': json['vitalSigns'],
+        'symptoms': json['symptoms'] == null ? undefined : json['symptoms'],
+        'vitalSigns': CreateTriageEvaluationRequestVitalSignsFromJSON(json['vitalSigns']),
     };
 }
 
@@ -65,7 +78,8 @@ export function CreateTriageEvaluationRequestToJSONTyped(value?: CreateTriageEva
     return {
         
         'patientId': value['patientId'],
-        'vitalSigns': value['vitalSigns'],
+        'symptoms': value['symptoms'],
+        'vitalSigns': CreateTriageEvaluationRequestVitalSignsToJSON(value['vitalSigns']),
     };
 }
 

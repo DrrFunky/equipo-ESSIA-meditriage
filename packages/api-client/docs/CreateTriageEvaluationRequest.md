@@ -7,7 +7,8 @@
 Name | Type
 ------------ | -------------
 `patientId` | string
-`vitalSigns` | object
+`symptoms` | Array&lt;string&gt;
+`vitalSigns` | [CreateTriageEvaluationRequestVitalSigns](CreateTriageEvaluationRequestVitalSigns.md)
 
 ## Example
 
@@ -17,6 +18,7 @@ import type { CreateTriageEvaluationRequest } from ''
 // TODO: Update the object below with actual values
 const example = {
   "patientId": null,
+  "symptoms": ["dolor torácico opresivo","dificultad para respirar"],
   "vitalSigns": null,
 } satisfies CreateTriageEvaluationRequest
 
