@@ -12,6 +12,9 @@ servers:
   - url: https://api.meditriage.example.com/v1
     description: Servidor de producción (placeholder)
 
+security:
+  - BearerAuth: []
+
 paths:
   /patients:
     post:
@@ -22,6 +25,8 @@ paths:
         Historia Must Have según priorización MoSCoW — obligatoria por
         la Ley 19.628 para procesar datos sensibles de salud.
       operationId: registerPatient
+      security:
+        - BearerAuth: []
       parameters:
         - name: Idempotency-Key
           in: header
@@ -55,22 +60,44 @@ paths:
             application/problem+json:
               schema:
                 $ref: '#/components/schemas/RFC7807Error'
+              examples:
+                invalidRutExample:
+                  summary: RUT inválido
+                  $ref: './examples/error-422-invalid-rut.json'
+        '401':
+          description: No autenticado — falta o es inválido el token Bearer
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/RFC7807Error'
         '409':
           description: Conflicto de idempotencia (solicitud duplicada con datos distintos)
           content:
             application/problem+json:
               schema:
                 $ref: '#/components/schemas/RFC7807Error'
+        '422':
+          description: Entidad no procesable (ej. RUT con formato o dígito verificador inválido)
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/RFC7807Error'
+              examples:
+                invalidRutExample:
+                  summary: RUT inválido
+                  $ref: './examples/error-422-invalid-rut.json'
 
   /triage-evaluations:
     post:
       summary: Solicitar una evaluación de triage asistida por IA
       description: >
-        Envía los signos vitales y síntomas del paciente para que el
+        Envía los síntomas y signos vitales del paciente para que el
         motor de IA sugiera la categoría ESI y su justificación clínica
         (mapea Historias 1 y 2: Sugerencia ESI automatizada y
         Justificación clínica explicable).
       operationId: createTriageEvaluation
+      security:
+        - BearerAuth: []
       parameters:
         - name: Idempotency-Key
           in: header
@@ -91,9 +118,32 @@ paths:
                 patientId:
                   type: string
                   format: uuid
+                symptoms:
+                  type: array
+                  description: Lista de síntomas reportados por el paciente o el personal de triage.
+                  items:
+                    type: string
+                  example: ["dolor torácico opresivo", "dificultad para respirar"]
                 vitalSigns:
                   type: object
-                  description: Signos vitales y síntomas reportados.
+                  description: Signos vitales medidos al ingreso.
+                  properties:
+                    heartRate:
+                      type: integer
+                      description: Frecuencia cardíaca (lpm).
+                    bloodPressureSystolic:
+                      type: integer
+                      description: Presión arterial sistólica (mmHg).
+                    bloodPressureDiastolic:
+                      type: integer
+                      description: Presión arterial diastólica (mmHg).
+                    temperatureCelsius:
+                      type: number
+                      format: float
+                      description: Temperatura corporal en grados Celsius.
+                    oxygenSaturationPercentage:
+                      type: integer
+                      description: Saturación de oxígeno (%).
             examples:
               submitTriageExample:
                 summary: Ejemplo de solicitud de evaluación de triage
@@ -115,6 +165,12 @@ paths:
             application/problem+json:
               schema:
                 $ref: '#/components/schemas/RFC7807Error'
+        '401':
+          description: No autenticado — falta o es inválido el token Bearer
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/RFC7807Error'
 
   /triage-evaluations/{id}:
     patch:
@@ -128,6 +184,8 @@ paths:
         ADR 0002 (NFR de Martín G.: SLA 99.5% + fallback si el motor de
         IA falla).
       operationId: updateTriageEvaluation
+      security:
+        - BearerAuth: []
       parameters:
         - name: id
           in: path
@@ -162,6 +220,12 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/TriageResult'
+        '401':
+          description: No autenticado — falta o es inválido el token Bearer
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/RFC7807Error'
         '404':
           description: Evaluación no encontrada
           content:
@@ -177,6 +241,8 @@ paths:
         (mapea Historia 4, tablero dinámico del médico jefe). Historia
         Must Have según priorización MoSCoW.
       operationId: getTriageBoard
+      security:
+        - BearerAuth: []
       responses:
         '200':
           description: Listado de pacientes priorizados
@@ -186,6 +252,12 @@ paths:
                 type: array
                 items:
                   $ref: '#/components/schemas/TriageResult'
+        '401':
+          description: No autenticado — falta o es inválido el token Bearer
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/RFC7807Error'
 
   /audit-logs:
     get:
@@ -195,6 +267,8 @@ paths:
         fines de trazabilidad (mapea Historia 5, retención de 5 años).
         Historia Must Have — crítica para cumplir la Ley 21.719.
       operationId: getAuditLogs
+      security:
+        - BearerAuth: []
       parameters:
         - name: from
           in: query
@@ -228,8 +302,30 @@ paths:
                     timestamp:
                       type: string
                       format: date-time
+        '401':
+          description: No autenticado — falta o es inválido el token Bearer
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/RFC7807Error'
+        '403':
+          description: Autenticado pero sin permisos de auditoría (solo Médico Jefe / Auditor Clínico)
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/RFC7807Error'
 
 components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: >
+        Autenticación mediante token JWT en el header Authorization
+        (formato: `Bearer <token>`). Requerido en todos los endpoints
+        de MediTriage.
+
   schemas:
     PatientRegistration:
       type: object
@@ -259,6 +355,12 @@ components:
           description: >
             Check explícito de consentimiento informado (obligatorio
             antes de procesar cualquier dato clínico).
+        consentTimestamp:
+          type: string
+          format: date-time
+          description: >
+            Fecha y hora exacta en que el paciente otorgó su
+            consentimiento informado.
 
     TriageResult:
       type: object
@@ -296,7 +398,8 @@ components:
       type: object
       description: >
         Esquema de manejo de errores estructurado según RFC 7807
-        (Problem Details for HTTP APIs).
+        (Problem Details for HTTP APIs), extendido con trace_id para
+        observabilidad según la Política de Versionado del equipo.
       properties:
         type:
           type: string
@@ -316,3 +419,10 @@ components:
           type: string
           format: uri
           example: "/v1/patients"
+        trace_id:
+          type: string
+          format: uuid
+          description: >
+            Identificador único de la traza de la solicitud, para
+            correlacionar logs y facilitar la observabilidad.
+          example: "f47ac10b-58cc-4372-a567-0e02b2c3d479"
