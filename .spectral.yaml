@@ -23,12 +23,12 @@ rules:
         match: "^Idempotency-Key$"
     severity: warn
 
-  # Regla 3: Rutas RESTful maduras (Kebab-case, sin verbos)
+  # Regla 3: Rutas RESTful maduras (Kebab-case y parámetros en path permitidos)
   paths-kebab-case:
-    description: Las rutas deben usar kebab-case y no contener verbos de acción.
+    description: Las rutas deben usar kebab-case y no contener verbos de acción. Permite parámetros entre llaves {}.
     given: $.paths[*]~
     then:
       function: pattern
       functionOptions:
-        match: "^(/[a-z0-9-]+)+$"
+        match: "^(/[a-z0-9-]+|/\\{[a-zA-Z0-9_]+\\})+$"
     severity: error
