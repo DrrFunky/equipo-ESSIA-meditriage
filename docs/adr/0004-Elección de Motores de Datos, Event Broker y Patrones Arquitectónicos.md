@@ -53,3 +53,94 @@ OpenSearch y ElastiCache tienen cobertura limitada en el Free Tier y pueden gene
 - Sin replay nativo: reconstruir proyecciones exige republicar desde `outbox_event`.
 - Gobierno de eventos: requiere versionado de schemas (`event_version`) y compatibilidad hacia atrás.
 - Riesgo financiero: OpenSearch y ElastiCache exigen monitoreo de costos (FinOps).
+
+# Anexo de Seguridad al ADR 0004: Audit Log inmutable y protección de PII
+
+- **Estado:** Propuesto
+- **Responsable:** Martín Durán (DevSecOps)
+- **Revisión conjunta:** Cristóbal Araos (Tech Lead)
+- **Relacionado:** ADR 0004 (datos y eventos), event-catalog.md, der.png
+
+## 1. Contexto
+Meditriage maneja datos de salud de pacientes (datos sensibles). Se requiere:
+(a) un registro de auditoría que no pueda alterarse ni borrarse, y
+(b) que ningún dato personal identificable (PII) salga en claro hacia el broker.
+
+Decisiones base del ADR 0004: **PostgreSQL** como motor de persistencia y **Amazon SQS** como broker de mensajería, con patrones CQRS y Outbox.
+
+## 2. Audit Log inmutable en PostgreSQL
+
+### Requisitos
+- Solo inserción (append-only): nadie modifica ni elimina registros.
+- Trazabilidad: quién, qué, cuándo, desde dónde y sobre qué recurso.
+- Detección de manipulación.
+
+### Controles propuestos
+| Control | Descripción |
+|---|---|
+| Rol dedicado | La aplicación escribe con un rol que solo tiene `INSERT` sobre `audit_log`. `REVOKE UPDATE, DELETE, TRUNCATE`. |
+| Trigger de bloqueo | Trigger `BEFORE UPDATE OR DELETE` que lanza excepción, como defensa en profundidad. |
+| Encadenamiento por hash | Cada registro guarda `prev_hash` y `hash` (SHA-256 del contenido + hash previo) para detectar alteraciones. |
+| Particionado por fecha | Partición mensual para retención y archivado. |
+| Auditoría de la base | Extensión `pgaudit` para registrar cambios de esquema y accesos privilegiados. Logs enviados a CloudWatch Logs. |
+| Cifrado | Cifrado en reposo con AWS KMS y TLS obligatorio en conexiones (`rds.force_ssl`). |
+| Réplica WORM | Exportación periódica a S3 con Object Lock en modo compliance, coherente con los servicios gestionados AWS definidos en `docs/arch`. |
+| Acceso restringido | Lectura solo para rol de auditoría. Uso de rol administrador fuera de la operación diaria y con alertas. |
+
+### Esquema mínimo
+`audit_log(id, occurred_at, actor_id, actor_role, action, resource_type, resource_id, source_ip, request_id, prev_hash, hash)`
+
+### Limitación a documentar
+Un administrador de la base de datos podría evadir los controles internos (triggers, permisos). Por eso la réplica WORM externa en S3 es la garantía fuerte de inmutabilidad.
+
+## 3. Protección de PII en el flujo hacia SQS
+
+### Principio
+Los eventos de dominio no transportan PII en claro. Se usa **minimización + pseudonimización**.
+
+### Flujo (patrón Outbox)
+1. El servicio guarda el cambio de negocio y el evento en la tabla `outbox` en la misma transacción.
+2. El evento se construye ya **sin PII directa**: se usa `patient_id` (UUID opaco) en lugar de RUT, nombre o contacto.
+3. Un publicador (relay) lee el outbox, **valida el payload contra su schema** y rechaza eventos con campos prohibidos.
+4. El relay envía el mensaje a SQS. Los consumidores que necesiten PII la consultan por ID a un servicio autorizado.
+
+### Clasificación de campos
+| Tipo | Ejemplos | Tratamiento en eventos |
+|---|---|---|
+| PII directa | RUT, nombre, teléfono, correo | Prohibido en payload |
+| Dato sensible de salud | diagnóstico, síntomas | Solo código/categoría, nunca texto libre |
+| Identificador opaco | patient_id (UUID) | Permitido |
+| Metadatos | timestamp, tipo de evento | Permitido |
+
+### Controles en SQS
+- **Cifrado en reposo** con SSE-KMS usando una clave propia (CMK), no la clave gestionada por defecto.
+- **Cifrado en tránsito:** política de cola que deniegue acceso si `aws:SecureTransport` es falso.
+- **Control de acceso por IAM:** cada servicio tiene un rol con permisos mínimos (`sqs:SendMessage` solo para productores, `sqs:ReceiveMessage` y `sqs:DeleteMessage` solo para el consumidor de esa cola). Sin permisos comodín.
+- **Una cola por consumidor** (o SNS + colas suscritas) para aislar el acceso por caso de uso.
+- **Dead-letter queue (DLQ)** con `maxReceiveCount` definido, cifrada con KMS, sin PII y con acceso restringido.
+- **Retención acotada** de mensajes (`MessageRetentionPeriod` al mínimo necesario).
+- **Idempotencia:** SQS estándar entrega al menos una vez y sin orden garantizado. Los consumidores deben tolerar duplicados (usar `event_id` único). Si el ciclo de vida del paciente exige orden, evaluar colas FIFO con `MessageGroupId = patient_id`.
+- **Trazabilidad:** CloudTrail activo para registrar llamadas de API sobre las colas y las claves KMS.
+- **Red:** VPC endpoint para SQS, sin salida por internet público.
+
+## 4. Verificación (checklist de auditoría con Cristóbal)
+- [ ] `audit_log` sin permisos UPDATE/DELETE para el rol de aplicación
+- [ ] Trigger de bloqueo probado
+- [ ] Cadena de hash verificable con script
+- [ ] Exportación WORM a S3 Object Lock definida
+- [ ] Ningún evento del catálogo contiene PII directa
+- [ ] Validación de schema en el publicador del outbox
+- [ ] Colas SQS con SSE-KMS y política de TLS obligatorio
+- [ ] Roles IAM con mínimo privilegio por productor y consumidor
+- [ ] DLQ configurada, cifrada y sin PII
+- [ ] Consumidores idempotentes
+
+## 5. Consideraciones normativas
+Aplican la Ley 19.628 y la Ley 20.584 (derechos de los pacientes, reserva de la ficha clínica). Considerar además la Ley 21.719 de protección de datos personales. Confirmar con el docente el alcance normativo esperado.
+
+## 6. Consecuencias
+- (+) Trazabilidad y evidencia ante auditorías.
+- (+) Menor superficie de exposición de datos en la cola.
+- (+) SQS es un servicio gestionado: menos operación y parches que un broker propio.
+- (−) Complejidad adicional (hash chain, validación de schema, exportación WORM).
+- (−) SQS estándar no garantiza orden ni entrega única: exige idempotencia en consumidores.
