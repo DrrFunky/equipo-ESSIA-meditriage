@@ -80,9 +80,10 @@ porque responde directamente a los 3 NFRs priorizados:
   99.5% con fallback (detallado arriba).
 
 **Pierde / se vuelve más difícil:**
-- Requiere disciplina real de módulos: si los límites internos no se
-  respetan, el monolito se convierte en un "big ball of mud" difícil de
-  mantener.
+- El módulo de IA, aunque desplegado de forma independiente (ADR 0003),
+  comparte repositorio y contratos con el resto del sistema; si necesita
+  escalar de forma autónoma, la extracción a un servicio completo tendrá un
+  costo de refactor.
 - El módulo de IA, aunque desacoplado a nivel de comunicación, sigue
   desplegándose junto al resto — si en el futuro necesita escalar de forma
   independiente (por ejemplo, más cómputo para el modelo), la extracción a
