@@ -115,10 +115,10 @@ porque responde directamente a los 3 NFRs priorizados:
 - **Cola / broker asíncrono:** desacopla las solicitudes de inferencia del
   resto del sistema y habilita el fallback si el motor de IA no responde.
   Tecnología tentativa: RabbitMQ o Redis Streams.
-- **Módulo de inferencia IA:** servicio interno (o proceso worker) que
-  consume de la cola, ejecuta el modelo de scoring ESI y publica el
-  resultado. Tecnología tentativa: Python (FastAPI + modelo scikit-learn /
-  PyTorch) como worker separado dentro del mismo monolito modular.
+- **Módulo de inferencia IA:** módulo del monolito (mismo repositorio y bounded
+  context propio) que consume de la cola, ejecuta el modelo de scoring ESI y
+  publica el resultado. Se despliega como función independiente (AWS Lambda,
+  ver ADR 0003). Tecnología tentativa: Python (modelo scikit-learn / PyTorch).
 - **Audit log:** almacenamiento append-only / inmutable para las
   recomendaciones de la IA (retención 5 años). Tecnología tentativa: tabla
   particionada en PostgreSQL con triggers de solo-inserción, o un almacén
