@@ -1,0 +1,126 @@
+// DER - Contexto Clinico (Core Domain) - MediTriage - PostgreSQL
+// Render: dot -Tpng -Gdpi=160 der.dot -o der.png
+digraph DER {
+  graph [rankdir=LR, splines=ortho, nodesep=0.55, ranksep=1.1, fontname="Helvetica",
+         labelloc=t, fontsize=20, pad=0.4, bgcolor="white",
+         label=<<B>MediTriage · DER del Contexto Clínico (PostgreSQL)</B><BR/><FONT POINT-SIZE="12" COLOR="#555555">Aggregate Root: Encounter · Eventos publicados vía Patrón Outbox · Consumidores idempotentes por event_id</FONT><BR/> >];
+  node  [shape=plain, fontname="Helvetica", fontsize=11];
+  edge  [fontname="Helvetica", fontsize=10, color="#334155", dir=both, penwidth=1.3];
+
+  encounter [label=<
+  <TABLE BORDER="0" CELLBORDER="1" CELLSPACING="0" CELLPADDING="4" BGCOLOR="white">
+   <TR><TD COLSPAN="3" BGCOLOR="#1d4ed8"><FONT COLOR="white"><B>encounter</B> «Aggregate Root»</FONT></TD></TR>
+   <TR><TD ALIGN="LEFT"><B>PK</B></TD><TD ALIGN="LEFT"><B>encounter_id</B></TD><TD ALIGN="LEFT">UUID</TD></TR>
+   <TR><TD></TD><TD ALIGN="LEFT">person_ref (rut_hash)</TD><TD ALIGN="LEFT">CHAR(64) NOT NULL</TD></TR>
+   <TR><TD></TD><TD ALIGN="LEFT">consent_signed</TD><TD ALIGN="LEFT">BOOLEAN NOT NULL</TD></TR>
+   <TR><TD></TD><TD ALIGN="LEFT">status</TD><TD ALIGN="LEFT">ENUM(*)</TD></TR>
+   <TR><TD></TD><TD ALIGN="LEFT">arrived_at</TD><TD ALIGN="LEFT">TIMESTAMPTZ</TD></TR>
+   <TR><TD></TD><TD ALIGN="LEFT">physician_id</TD><TD ALIGN="LEFT">VARCHAR NULL</TD></TR>
+   <TR><TD></TD><TD ALIGN="LEFT">box_number</TD><TD ALIGN="LEFT">VARCHAR NULL</TD></TR>
+   <TR><TD></TD><TD ALIGN="LEFT">attended_at</TD><TD ALIGN="LEFT">TIMESTAMPTZ NULL</TD></TR>
+   <TR><TD></TD><TD ALIGN="LEFT">discharge_reason</TD><TD ALIGN="LEFT">VARCHAR NULL</TD></TR>
+   <TR><TD></TD><TD ALIGN="LEFT">discharged_at</TD><TD ALIGN="LEFT">TIMESTAMPTZ NULL</TD></TR>
+   <TR><TD></TD><TD ALIGN="LEFT">version</TD><TD ALIGN="LEFT">INT (opt. lock)</TD></TR>
+  </TABLE>>];
+
+  vital_signs [label=<
+  <TABLE BORDER="0" CELLBORDER="1" CELLSPACING="0" CELLPADDING="4" BGCOLOR="white">
+   <TR><TD COLSPAN="3" BGCOLOR="#0f766e"><FONT COLOR="white"><B>vital_signs</B></FONT></TD></TR>
+   <TR><TD ALIGN="LEFT"><B>PK</B></TD><TD ALIGN="LEFT"><B>vital_signs_id</B></TD><TD ALIGN="LEFT">UUID</TD></TR>
+   <TR><TD ALIGN="LEFT"><I>FK</I></TD><TD ALIGN="LEFT"><I>encounter_id</I></TD><TD ALIGN="LEFT">UUID</TD></TR>
+   <TR><TD></TD><TD ALIGN="LEFT">fc (lpm)</TD><TD ALIGN="LEFT">SMALLINT</TD></TR>
+   <TR><TD></TD><TD ALIGN="LEFT">pa_sistolica / pa_diastolica</TD><TD ALIGN="LEFT">SMALLINT</TD></TR>
+   <TR><TD></TD><TD ALIGN="LEFT">sato2 (%)</TD><TD ALIGN="LEFT">NUMERIC(4,1)</TD></TR>
+   <TR><TD></TD><TD ALIGN="LEFT">temp (°C)</TD><TD ALIGN="LEFT">NUMERIC(3,1)</TD></TR>
+   <TR><TD></TD><TD ALIGN="LEFT">captured_by (nurse_id)</TD><TD ALIGN="LEFT">VARCHAR</TD></TR>
+   <TR><TD></TD><TD ALIGN="LEFT">captured_at</TD><TD ALIGN="LEFT">TIMESTAMPTZ</TD></TR>
+  </TABLE>>];
+
+  symptom_report [label=<
+  <TABLE BORDER="0" CELLBORDER="1" CELLSPACING="0" CELLPADDING="4" BGCOLOR="white">
+   <TR><TD COLSPAN="3" BGCOLOR="#0f766e"><FONT COLOR="white"><B>symptom_report</B></FONT></TD></TR>
+   <TR><TD ALIGN="LEFT"><B>PK</B></TD><TD ALIGN="LEFT"><B>symptom_report_id</B></TD><TD ALIGN="LEFT">UUID</TD></TR>
+   <TR><TD ALIGN="LEFT"><I>FK</I></TD><TD ALIGN="LEFT"><I>encounter_id</I></TD><TD ALIGN="LEFT">UUID</TD></TR>
+   <TR><TD></TD><TD ALIGN="LEFT">symptoms_list</TD><TD ALIGN="LEFT">JSONB</TD></TR>
+   <TR><TD></TD><TD ALIGN="LEFT">free_text</TD><TD ALIGN="LEFT">TEXT NULL</TD></TR>
+   <TR><TD></TD><TD ALIGN="LEFT">reported_at</TD><TD ALIGN="LEFT">TIMESTAMPTZ</TD></TR>
+  </TABLE>>];
+
+  triage_request [label=<
+  <TABLE BORDER="0" CELLBORDER="1" CELLSPACING="0" CELLPADDING="4" BGCOLOR="white">
+   <TR><TD COLSPAN="3" BGCOLOR="#b45309"><FONT COLOR="white"><B>triage_request</B></FONT></TD></TR>
+   <TR><TD ALIGN="LEFT"><B>PK</B></TD><TD ALIGN="LEFT"><B>triage_request_id</B></TD><TD ALIGN="LEFT">UUID</TD></TR>
+   <TR><TD ALIGN="LEFT"><I>FK</I></TD><TD ALIGN="LEFT"><I>encounter_id</I></TD><TD ALIGN="LEFT">UUID</TD></TR>
+   <TR><TD ALIGN="LEFT"><I>FK</I></TD><TD ALIGN="LEFT"><I>vital_signs_id</I></TD><TD ALIGN="LEFT">UUID</TD></TR>
+   <TR><TD ALIGN="LEFT"><I>FK</I></TD><TD ALIGN="LEFT"><I>symptom_report_id</I></TD><TD ALIGN="LEFT">UUID</TD></TR>
+   <TR><TD></TD><TD ALIGN="LEFT">status</TD><TD ALIGN="LEFT">PENDING|DONE|FAILED</TD></TR>
+   <TR><TD></TD><TD ALIGN="LEFT">requested_at</TD><TD ALIGN="LEFT">TIMESTAMPTZ</TD></TR>
+  </TABLE>>];
+
+  triage_result [label=<
+  <TABLE BORDER="0" CELLBORDER="1" CELLSPACING="0" CELLPADDING="4" BGCOLOR="white">
+   <TR><TD COLSPAN="3" BGCOLOR="#b45309"><FONT COLOR="white"><B>triage_result</B> (salida Motor IA)</FONT></TD></TR>
+   <TR><TD ALIGN="LEFT"><B>PK</B></TD><TD ALIGN="LEFT"><B>triage_result_id</B></TD><TD ALIGN="LEFT">UUID</TD></TR>
+   <TR><TD ALIGN="LEFT"><I>FK</I></TD><TD ALIGN="LEFT"><I>triage_request_id (UQ)</I></TD><TD ALIGN="LEFT">UUID</TD></TR>
+   <TR><TD></TD><TD ALIGN="LEFT">outcome</TD><TD ALIGN="LEFT">COMPLETED|FAILED</TD></TR>
+   <TR><TD></TD><TD ALIGN="LEFT">esi_category</TD><TD ALIGN="LEFT">SMALLINT 1-5 NULL</TD></TR>
+   <TR><TD></TD><TD ALIGN="LEFT">reasoning</TD><TD ALIGN="LEFT">TEXT NULL</TD></TR>
+   <TR><TD></TD><TD ALIGN="LEFT">model_version</TD><TD ALIGN="LEFT">VARCHAR</TD></TR>
+   <TR><TD></TD><TD ALIGN="LEFT">error_code</TD><TD ALIGN="LEFT">VARCHAR NULL</TD></TR>
+   <TR><TD></TD><TD ALIGN="LEFT">completed_at</TD><TD ALIGN="LEFT">TIMESTAMPTZ</TD></TR>
+  </TABLE>>];
+
+  triage_confirmation [label=<
+  <TABLE BORDER="0" CELLBORDER="1" CELLSPACING="0" CELLPADDING="4" BGCOLOR="white">
+   <TR><TD COLSPAN="3" BGCOLOR="#b45309"><FONT COLOR="white"><B>triage_confirmation</B> (decisión humana)</FONT></TD></TR>
+   <TR><TD ALIGN="LEFT"><B>PK</B></TD><TD ALIGN="LEFT"><B>confirmation_id</B></TD><TD ALIGN="LEFT">UUID</TD></TR>
+   <TR><TD ALIGN="LEFT"><I>FK</I></TD><TD ALIGN="LEFT"><I>encounter_id (UQ)</I></TD><TD ALIGN="LEFT">UUID</TD></TR>
+   <TR><TD ALIGN="LEFT"><I>FK</I></TD><TD ALIGN="LEFT"><I>triage_result_id</I></TD><TD ALIGN="LEFT">UUID</TD></TR>
+   <TR><TD></TD><TD ALIGN="LEFT">final_esi</TD><TD ALIGN="LEFT">SMALLINT 1-5</TD></TR>
+   <TR><TD></TD><TD ALIGN="LEFT">nurse_id</TD><TD ALIGN="LEFT">VARCHAR</TD></TR>
+   <TR><TD></TD><TD ALIGN="LEFT">override_applied</TD><TD ALIGN="LEFT">BOOLEAN</TD></TR>
+   <TR><TD></TD><TD ALIGN="LEFT">override_reason</TD><TD ALIGN="LEFT">TEXT NULL</TD></TR>
+   <TR><TD></TD><TD ALIGN="LEFT">confirmed_at</TD><TD ALIGN="LEFT">TIMESTAMPTZ</TD></TR>
+  </TABLE>>];
+
+  outbox_event [label=<
+  <TABLE BORDER="0" CELLBORDER="1" CELLSPACING="0" CELLPADDING="4" BGCOLOR="white">
+   <TR><TD COLSPAN="3" BGCOLOR="#6d28d9"><FONT COLOR="white"><B>outbox_event</B> «Patrón Outbox»</FONT></TD></TR>
+   <TR><TD ALIGN="LEFT"><B>PK</B></TD><TD ALIGN="LEFT"><B>event_id</B></TD><TD ALIGN="LEFT">ULID / UUID</TD></TR>
+   <TR><TD ALIGN="LEFT"><I>FK</I></TD><TD ALIGN="LEFT"><I>aggregate_id (encounter)</I></TD><TD ALIGN="LEFT">UUID</TD></TR>
+   <TR><TD></TD><TD ALIGN="LEFT">event_type</TD><TD ALIGN="LEFT">VARCHAR</TD></TR>
+   <TR><TD></TD><TD ALIGN="LEFT">event_version</TD><TD ALIGN="LEFT">VARCHAR</TD></TR>
+   <TR><TD></TD><TD ALIGN="LEFT">trace_id</TD><TD ALIGN="LEFT">VARCHAR</TD></TR>
+   <TR><TD></TD><TD ALIGN="LEFT">payload (PII enmascarada)</TD><TD ALIGN="LEFT">JSONB</TD></TR>
+   <TR><TD></TD><TD ALIGN="LEFT">occurred_at</TD><TD ALIGN="LEFT">TIMESTAMPTZ</TD></TR>
+   <TR><TD></TD><TD ALIGN="LEFT">published_at</TD><TD ALIGN="LEFT">TIMESTAMPTZ NULL</TD></TR>
+  </TABLE>>];
+
+  processed_event [label=<
+  <TABLE BORDER="0" CELLBORDER="1" CELLSPACING="0" CELLPADDING="4" BGCOLOR="white">
+   <TR><TD COLSPAN="3" BGCOLOR="#6d28d9"><FONT COLOR="white"><B>processed_event</B> «Idempotencia»</FONT></TD></TR>
+   <TR><TD ALIGN="LEFT"><B>PK</B></TD><TD ALIGN="LEFT"><B>event_id</B></TD><TD ALIGN="LEFT">ULID / UUID</TD></TR>
+   <TR><TD></TD><TD ALIGN="LEFT">event_type</TD><TD ALIGN="LEFT">VARCHAR</TD></TR>
+   <TR><TD></TD><TD ALIGN="LEFT">consumer</TD><TD ALIGN="LEFT">VARCHAR</TD></TR>
+   <TR><TD></TD><TD ALIGN="LEFT">processed_at</TD><TD ALIGN="LEFT">TIMESTAMPTZ</TD></TR>
+  </TABLE>>];
+
+  // Cardinalidades (pie de cuervo): tail = lado "1", head = lado "N"
+  encounter -> vital_signs         [arrowtail=teetee, arrowhead=crowodot, xlabel="  registra  "];
+  encounter -> symptom_report      [arrowtail=teetee, arrowhead=crowodot, xlabel="  reporta  "];
+  encounter -> triage_request      [arrowtail=teetee, arrowhead=crowodot, xlabel="  solicita  "];
+  encounter -> triage_confirmation [arrowtail=teetee, arrowhead=teeodot,  xlabel="  confirma  "];
+  vital_signs    -> triage_request [arrowtail=teetee, arrowhead=crowodot, style=dashed, xlabel="  snapshot  "];
+  symptom_report -> triage_request [arrowtail=teetee, arrowhead=crowodot, style=dashed, xlabel="  snapshot  "];
+  triage_request -> triage_result  [arrowtail=teetee, arrowhead=teeodot,  xlabel="  produce  "];
+  triage_result  -> triage_confirmation [arrowtail=teetee, arrowhead=crowodot, xlabel="  revisa  "];
+  encounter -> outbox_event        [arrowtail=teetee, arrowhead=crowodot, xlabel="  emite (misma TX)  "];
+
+  legend [shape=none, label=<
+  <TABLE BORDER="0" CELLBORDER="0" CELLSPACING="0" CELLPADDING="3">
+   <TR><TD ALIGN="LEFT"><B>(*) status:</B> REGISTERED → VITALS_CAPTURED → TRIAGE_REQUESTED → TRIAGED → CONFIRMED → ATTENDED → DISCHARGED</TD></TR>
+   <TR><TD ALIGN="LEFT"><B>person_ref:</B> referencia opaca (rut_hash) al Contexto de Identidad; sin FK entre contextos. Sin nombre/RUT en claro.</TD></TR>
+   <TR><TD ALIGN="LEFT"><B>Notación:</B> pie de cuervo · línea punteada = referencia de snapshot · PK negrita · FK cursiva · UQ = UNIQUE</TD></TR>
+  </TABLE>>];
+  processed_event -> legend [style=invis];
+}
