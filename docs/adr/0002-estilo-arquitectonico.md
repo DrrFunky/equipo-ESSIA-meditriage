@@ -74,8 +74,9 @@ porque responde directamente a los 3 NFRs priorizados:
 **Gana:**
 - Operación simple para un equipo pequeño y un MVP: un solo deploy, sin la
   complejidad operacional de una red de microservicios.
-- Transacciones ACID naturales para el registro de pacientes y el audit log,
-  evitando problemas de consistencia eventual en datos clínicos sensibles.
+- Transacciones ACID naturales para el registro de pacientes. El audit log se
+  alimenta mediante el patrón Outbox (ADR 0004), con entrega at-least-once y
+  consumidor idempotente, sin pérdida de eventos.
 - El desacoplamiento asíncrono del módulo de IA refuerza la disponibilidad
   99.5% con fallback (detallado arriba).
 
@@ -110,17 +111,12 @@ porque responde directamente a los 3 NFRs priorizados:
 - **API / Backend (Monolito Modular):** módulos internos separados por
   bounded context (registro de pacientes, triage, auditoría). Tecnología
   tentativa: Node.js (NestJS) o Python (FastAPI/Django).
-- **Base de datos:** almacenamiento relacional para datos clínicos y
-  paciente, con cifrado en reposo habilitado. Tecnología tentativa:
-  PostgreSQL con extensión de cifrado (pgcrypto) o cifrado a nivel de disco.
-- **Cola / broker asíncrono:** desacopla las solicitudes de inferencia del
-  resto del sistema y habilita el fallback si el motor de IA no responde.
-  Tecnología tentativa: RabbitMQ o Redis Streams.
+- - **Base de datos:** PostgreSQL sobre Amazon RDS (ADR 0003), con cifrado en reposo (KMS).
+- **Cola / broker asíncrono:** Amazon SNS + SQS FIFO (ADR 0003 y ADR 0004).
 - **Módulo de inferencia IA:** módulo del monolito (mismo repositorio y bounded
   context propio) que consume de la cola, ejecuta el modelo de scoring ESI y
   publica el resultado. Se despliega como función independiente (AWS Lambda,
   ver ADR 0003). Tecnología tentativa: Python (modelo scikit-learn / PyTorch).
-- **Audit log:** almacenamiento append-only / inmutable para las
-  recomendaciones de la IA (retención 5 años). Tecnología tentativa: tabla
-  particionada en PostgreSQL con triggers de solo-inserción, o un almacén
-  de eventos tipo event store.
+- - **Audit log:** almacenamiento append-only para las recomendaciones de la IA
+  (retención 5 años). Tabla particionada en PostgreSQL con triggers de
+  solo-inserción y encadenamiento por hash (ver ADR 0004).
