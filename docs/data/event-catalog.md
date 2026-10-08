@@ -1,6 +1,6 @@
 # Catálogo de Eventos de Dominio
 
-El flujo asíncrono de MediTriage se basa en los siguientes eventos inmutables, aplicando semántica de entrega *at-least-once*[cite: 23]. Todo consumidor debe implementar operaciones idempotentes utilizando el `event_id`.
+El flujo asíncrono de MediTriage se basa en los siguientes eventos inmutables, aplicando semántica de entrega *at-least-once*. Todo consumidor debe implementar operaciones idempotentes utilizando el `event_id`.
 
 | ID | Evento (Pasado) | Productor | Consumidor(es) principales | Payload (Schema resumido) |
 | :--- | :--- | :--- | :--- | :--- |
@@ -16,4 +16,4 @@ El flujo asíncrono de MediTriage se basa en los siguientes eventos inmutables, 
 | 10 | `patient.discharged` | HIS Externo | Clínico, Facturación | `discharge_reason`, `encounter_id` |
 
 ## Semántica y Patrones
-* Todos los eventos emitidos por el **Contexto Clínico** utilizarán el **Patrón Outbox** sobre PostgreSQL[cite: 23]. Esto garantiza que la actualización del estado del `Encounter` y la publicación del evento hacia el broker (ej. RabbitMQ/Kafka) ocurran en una única transacción atómica.
+* Todos los eventos emitidos por el **Contexto Clínico** utilizarán el **Patrón Outbox** sobre PostgreSQL. Esto garantiza que la actualización del estado del `Encounter` y la publicación del evento hacia el broker (ej. RabbitMQ/Kafka) ocurran en una única transacción atómica.
