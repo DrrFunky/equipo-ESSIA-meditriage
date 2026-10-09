@@ -1,47 +1,53 @@
-@startuml C4_Elements
+@startuml c4-l2-contenedores
 !include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Container.puml
 
 LAYOUT_LEFT_RIGHT()
-
 title Diagrama de Contenedores (C4 Nivel 2) - Sistema MediTriage
-' Actualizado en ADR 0003: tecnologías genéricas reemplazadas por servicios managed de AWS
 
 Person(paciente, "Paciente", "Ingresa sus síntomas y signos vitales en el tótem o tablet.")
 Person(medico, "Personal Médico", "Enfermera de triage o Médico jefe que revisa el tablero dinámico.")
 
 System_Boundary(meditriage, "MediTriage") {
-    
     Container(spa, "Aplicación SPA Web", "React / Next.js — AWS Amplify", "Provee la interfaz de usuario para el registro y el tablero dinámico. Desplegado en CDN global con SSL/HTTPS para protección de PII en tránsito.")
-    
-    Container(api, "API Backend", "Python / FastAPI — AWS Elastic Beanstalk", "Orquesta la lógica, maneja WebSockets, ofusca PII y gestiona la comunicación externa. Aislada en VPC privada.")
-    
-    Container(worker_ia, "Servicio de IA (Worker)", "Python — AWS Lambda", "Procesa síntomas de forma asíncrona para sugerir la categorización ESI (1-5) y generar su justificación clínica (Serverless).")
-    
-    ContainerDb(db, "Base de Datos Relacional", "PostgreSQL — Amazon RDS", "Almacena perfiles, consentimientos y estado del triage. Cifrada en reposo con AWS KMS (AES-256).")
-    
-    ContainerQueue(broker, "Broker de Mensajería", "Amazon SQS", "Gestiona las colas de inferencia asíncrona de IA y encola eventos para el audit log inmutable a 5 años.")
+
+    Container(api, "API Backend", "Python / FastAPI — AWS Elastic Beanstalk", "Monolito modular (Contextos Clínico, Identidad, Auditoría y Facturación). Orquesta la lógica, maneja WebSockets, ofusca PII y gestiona la comunicación externa. Incluye el relay del Patrón Outbox. Aislada en VPC privada.")
+
+    ContainerDb(db, "Base de Datos Relacional", "PostgreSQL — Amazon RDS", "Write model: Encounter, signos vitales, síntomas, triage, consentimientos, outbox_event, processed_event y AuditLog append-only (5 años). Cifrada en reposo con AWS KMS (AES-256).")
+
+    ContainerQueue(broker, "Broker de Mensajería", "Amazon SNS + SQS (FIFO)", "Una cola por consumidor, ordenadas por encounter_id, con Dead Letter Queue. Entrega at-least-once; consumidores idempotentes por event_id.")
+
+    Container(worker, "Servicio de IA (Worker)", "Python — AWS Lambda", "Procesa síntomas de forma asíncrona para sugerir la categorización ESI (1-5) y generar su justificación clínica (Serverless).")
+
+    Container(proyector, "Proyectores de Lectura", "Python — AWS Lambda", "Consumen eventos del broker de forma idempotente y actualizan el read model (CQRS).")
+
+    ContainerDb(search, "Read Model: Dashboard de Triage", "Amazon OpenSearch Service", "Proyección de lectura para el tablero priorizado por ESI.")
+
+    ContainerDb(cache, "Read Model: Sala de Espera", "Redis — Amazon ElastiCache", "Estado en tiempo real de la sala de espera.")
 }
 
-System_Ext(registro_civil, "Servicio de Registro Civil", "Servicio gubernamental para la validación matemática/identidad del RUT.")
-System_Ext(his_ehr, "Sistema Hospitalario (HIS/EHR)", "Sistema interno de la clínica para consultar antecedentes médicos históricos.")
+System_Ext(registro, "Servicio de Registro Civil", "Servicio gubernamental para la validación matemática/identidad del RUT.")
+System_Ext(his, "Sistema Hospitalario (HIS/EHR)", "Sistema interno de la clínica para consultar antecedentes médicos históricos.")
 
 Rel(paciente, spa, "Ingresa datos y acepta consentimiento", "HTTPS")
 Rel(medico, spa, "Visualiza tablero priorizado", "HTTPS")
+Rel(spa, api, "Envía formularios y actualiza tablero en tiempo real", "JSON/HTTPS y WebSockets")
 
-Rel(spa, api, "Envía formularios y actualiza tablero en tiempo real", "JSON/HTTPS y WebSockets", $tags="port:443")
+BiRel(api, db, "Escribe estado y outbox_event en la misma transacción; lee datos cifrados", "TCP/TLS")
+Rel(api, broker, "Publica eventos (relay Outbox, PII ofuscada/enmascarada)", "AWS API / HTTPS")
+Rel(broker, api, "Consume resultados de triage y eventos de otros contextos (long polling)", "AWS API / HTTPS")
 
-' CORRECCIÓN: Se usa BiRel (Bidirectional Relation) para la flecha de vuelta
-BiRel(api, db, "Lee y escribe datos cifrados", "TCP/TLS", $tags="port:5432")
+Rel(broker, worker, "Dispara ejecución de inferencia ESI (triage.requested)", "AWS API / HTTPS")
+Rel(worker, broker, "Publica resultado ESI y justificación (triage.completed / triage.failed)", "AWS API / HTTPS")
 
-' AWS SQS se comunica mediante llamadas a la API vía HTTPS, no por AMQP
-Rel(api, broker, "Publica solicitud de triage (PII ofuscado) y eventos", "AWS API / HTTPS", $tags="port:443")
-Rel(broker, worker_ia, "Dispara ejecución de inferencia ESI", "AWS API / HTTPS", $tags="port:443")
-Rel(worker_ia, broker, "Publica resultado ESI y justificación", "AWS API / HTTPS", $tags="port:443")
-Rel(broker, api, "Consume resultados resueltos (Long polling)", "AWS API / HTTPS", $tags="port:443")
+Rel(broker, proyector, "Entrega eventos clínicos", "AWS API / HTTPS")
+Rel(proyector, search, "Actualiza proyección del dashboard", "HTTPS")
+Rel(proyector, cache, "Actualiza estado de sala de espera", "TLS")
 
-' CORRECCIÓN: Se usa BiRel (Bidirectional Relation) para mostrar que la API recibe respuesta
-BiRel(api, registro_civil, "Solicita y recibe validación de RUT", "JSON/HTTPS")
-BiRel(api, his_ehr, "Consulta y recibe historial clínico (PII minimizado)", "HTTPS/HL7")
+Rel(api, search, "Consulta tablero de triage (queries CQRS)", "HTTPS")
+Rel(api, cache, "Consulta sala de espera (queries CQRS)", "TLS")
+
+BiRel(api, registro, "Solicita y recibe validación de RUT", "JSON/HTTPS")
+BiRel(api, his, "Consulta y recibe historial clínico (PII minimizado); envía triage.confirmed", "HTTPS/HL7")
 
 SHOW_LEGEND()
 @enduml
