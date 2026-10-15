@@ -1,0 +1,21 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: meditriage-api
+  namespace: meditriage            # <- el namespace que crea terraform/main.tf
+  labels:
+    app.kubernetes.io/name: meditriage-api
+    app.kubernetes.io/part-of: meditriage
+spec:
+  ingressClassName: nginx          # ajustar si el clúster usa otro controlador
+  rules:
+    - host: meditriage.local
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: meditriage-api
+                port:
+                  name: http
