@@ -1,0 +1,13 @@
+__pycache__/
+*.py[cod]
+*$py.class
+.env
+config.dev.json
+.git/
+.gitignore
+.venv/
+venv/
+ENV/
+env/
+tests/
+Dockerfile
