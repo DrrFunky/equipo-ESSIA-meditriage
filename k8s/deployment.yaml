@@ -1,0 +1,68 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: meditriage-api
+  namespace: meditriage            # <- el namespace que crea terraform/main.tf
+  labels:
+    app.kubernetes.io/name: meditriage-api
+    app.kubernetes.io/part-of: meditriage
+spec:
+  replicas: 2
+  revisionHistoryLimit: 3
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: meditriage-api
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: meditriage-api
+        app.kubernetes.io/part-of: meditriage
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 65532            # usuario "nonroot" de distroless
+        runAsGroup: 65532
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+- name: api
+  # Imagen fijada por digest (nunca :latest), publicada en GHCR por Martín Durán.
+  image: ghcr.io/guffy0921/meditriage@sha256:7c89c6fd511c03f4a49a025979d80da2007c43dd2870732bedc0ece06ce75e36
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: http
+              containerPort: 8000
+          envFrom:
+            - configMapRef:
+                name: meditriage-config
+          resources:
+            requests:               # el HPA calcula el % de CPU contra este valor
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: 500m
+              memory: 256Mi
+          readinessProbe:
+            httpGet: {path: /health, port: http}
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            httpGet: {path: /health, port: http}
+            initialDelaySeconds: 15
+            periodSeconds: 20
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: ["ALL"]
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+      volumes:
+        - name: tmp
+          emptyDir: {}
