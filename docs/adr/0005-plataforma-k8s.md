@@ -1,7 +1,7 @@
 # ADR 0005 · Plataforma Base: Contenedores, Kubernetes e Infraestructura como Código (IaC)
 
 ## Estado
-Propuesto - 15/10/2026
+Aceptado - 15/10/2026
 
 ## Contexto
 Continuando con la evolución arquitectónica de MediTriage (ADR 0003 y ADR 0004), el equipo necesita definir el estándar tecnológico para el ciclo de vida de los microservicios clínicos. Se requiere asegurar que los despliegues sean reproducibles, escalables ante variaciones de carga en los servicios de urgencia, y altamente seguros para proteger la infraestructura frente a vulnerabilidades. Además, la creación y configuración de la infraestructura debe ser auditable y automatizada para evitar el "drift" (desvío) de configuración manual.
@@ -16,34 +16,35 @@ Se adoptan las siguientes herramientas y patrones de plataforma:
    - **Trazabilidad:** Etiquetado inmutable por *digest* (`@sha256:...`), prohibiendo explícitamente el uso del tag `:latest` en producción.
 
 2. **Orquestación:** 
-   - **Motor:** Kubernetes. Para ambientes productivos se utilizará Amazon EKS (alineado con la exclusividad AWS del ADR 0003). Para desarrollo local, clústeres efímeros con `kind` o `minikube`.
-   - **Escalabilidad:** Implementación de Horizontal Pod Autoscaler (HPA) basado en métricas de CPU (objetivo 65%) y latencia.
+   - **Motor:** Kubernetes. Para ambientes productivos en la nube se utilizará **Amazon EKS**. Para el desarrollo y pruebas en entornos locales, se utilizará el clúster integrado de **Docker Desktop**.
+   - **Escalabilidad:** Implementación de Horizontal Pod Autoscaler (HPA) configurado para escalar réplicas basado en uso de CPU (**objetivo del 50%**) y latencia. (Nota: probado y validado en el `hpa.yaml` de la iteración actual).
 
 3. **Infraestructura como Código (IaC):** 
    - **Herramienta:** Terraform (HCL).
-   - **Gestión de Estado:** Backend remoto (S3) con bloqueo de estado (*state locking*) obligatorio mediante DynamoDB.
+   - **Gestión de Estado:** 
+     - **Producción (AWS):** Backend remoto en Amazon S3 con bloqueo de estado (*state locking*) obligatorio mediante Amazon DynamoDB.
+     - **Desarrollo Local:** Backend de `kubernetes`, almacenando el `.tfstate` como un *Secret* dentro del clúster local de Docker Desktop para simplificar el flujo de trabajo sin depender de la nube.
 
 ## Justificación de los trade-offs
 
-**Por qué Distroless y Multi-stage:** 
-En un contexto de salud, minimizar la superficie de ataque es vital. El enfoque *multi-stage* compila las dependencias en una capa y transfiere solo los binarios al *runtime*. Las imágenes *distroless* carecen de gestores de paquetes (ej. `apt`), `shell` (bash/sh) y utilidades de red (`curl`, `wget`). Si un atacante logra comprometer la aplicación (RCE), no tendrá herramientas para escalar el ataque o descargar payloads externos. Además, forzar `USER nonroot` evita el escalamiento de privilegios hacia el nodo *host*.
-
-**Por qué Kubernetes (EKS):** 
-Kubernetes provee la resiliencia que un sistema de triage requiere: *self-healing* (reinicio de contenedores caídos) y *Zero Downtime Deployments* nativos. Aunque AWS ECS es más simple, Kubernetes es el estándar agnóstico de la industria y facilita la migración si MediTriage se comercializa *on-premise* en hospitales en el futuro. El HPA garantiza que el sistema escale horizontalmente de forma automática si hay picos de concurrencia en la sala de urgencias.
+**Por qué Kubernetes (EKS) y no alternativas (ECS/Serverless):** 
+Kubernetes provee la resiliencia que un sistema de triage requiere: *self-healing* (reinicio de contenedores caídos) y *Zero Downtime Deployments* nativos. Aunque alternativas propietarias como AWS ECS son más simples de operar, Kubernetes es el estándar agnóstico de la industria y facilita la portabilidad si MediTriage deba desplegarse *on-premise* en los servidores del hospital en el futuro.
 
 **Por qué Terraform y no CloudFormation o Pulumi:** 
-Terraform ofrece un equilibrio ideal entre madurez del ecosistema y control declarativo. A diferencia de CloudFormation (propietario de AWS), Terraform permite gestionar múltiples *providers* (AWS, Kubernetes, GitHub) con el mismo flujo de trabajo. Frente a Pulumi, el lenguaje HCL de Terraform impone una barrera declarativa que evita que la infraestructura se convierta en "código espagueti" imperativo. El uso de S3 + DynamoDB para el backend asegura que si dos ingenieros (ej. DevSecOps y Tech Lead) aplican cambios simultáneos, no se corromperá el estado de la infraestructura.
+Terraform ofrece un equilibrio ideal entre madurez del ecosistema y control declarativo. A diferencia de CloudFormation (propietario exclusivo de AWS), Terraform nos permite gestionar múltiples *providers* (AWS, Kubernetes, etc.) con el mismo lenguaje y flujo de trabajo. Frente a Pulumi, el lenguaje HCL de Terraform impone una barrera declarativa que evita que la infraestructura se convierta en código imperativo impredecible. 
 
-## Consecuencias
+**Por qué Distroless y Multi-stage:** 
+En un contexto de salud, minimizar la superficie de ataque es vital. El enfoque *multi-stage* compila las dependencias en una capa y transfiere solo los binarios al *runtime*. Las imágenes *distroless* carecen de gestores de paquetes (ej. `apt`), `shell` (bash/sh) y utilidades de red (`curl`, `wget`). Si un atacante logra comprometer la aplicación, no tendrá herramientas para escalar el ataque. Además, forzar `USER nonroot` evita el escalamiento de privilegios hacia el nodo *host*.
+
+## Consecuencias y Limitaciones Actuales
 
 **Gana:**
 - **Seguridad *Zero Trust*:** Contenedores mínimos sin shell previenen inyecciones y movimientos laterales.
-- **Auditoría y GitOps:** Toda la infraestructura está versionada en Git. Cada cambio es un *commit* revisable.
-- **Inmutabilidad:** El tag por SHA256 garantiza que la imagen que pasó QA sea exactamente la misma que corre en producción.
-- **Disponibilidad:** El HPA previene caídas por agotamiento de recursos.
+- **Auditoría y GitOps:** Toda la infraestructura está versionada en Git.
+- **Inmutabilidad:** El tag por SHA256 garantiza despliegues 100% predecibles.
 
-**Pierde / se vuelve más difícil:**
-- **Debugging en producción:** Al no haber *shell* ni comandos básicos en la imagen *distroless*, tareas como un simple `ping` o ejecutar comandos dentro del pod (`kubectl exec`) se vuelven complejas. El equipo deberá depender exclusivamente de observabilidad remota, logs estructurados y contenedores efímeros de depuración (K8s Ephemeral Containers).
-- **Curva de aprendizaje:** El equipo debe manejar YAMLs de Kubernetes y configuración HCL de Terraform.
-- **Gestión del Estado:** Riesgo operativo si un desarrollador aplica cambios sin conectarse al *backend* remoto de Terraform (corrupción del *state*).
-- **Costos Base (FinOps):** El *Control Plane* de EKS tiene un costo por hora fijo que no aplica la capa gratuita, lo que encarece el MVP frente a un despliegue puramente Serverless o Monolítico.
+**Limitaciones asumidas (Pierde / se vuelve más difícil):**
+- **Estado en memoria (Mocking temporal):** Para agilizar esta entrega de infraestructura, los servicios locales podrían estar usando un estado en memoria temporal en lugar de conectar directamente al clúster final de base de datos.
+- **Auth Stub:** La autenticación real está temporalmente simulada (*stubbed*), pendiente de integración con el servicio de identidad definitivo.
+- **Debugging en producción:** Al no haber *shell* ni comandos básicos en la imagen *distroless*, tareas como ejecutar comandos dentro del pod (`kubectl exec -it`) se vuelven imposibles. El equipo deberá depender de logs estructurados, observabilidad y contenedores efímeros de depuración de K8s.
+- **Costos Base (FinOps):** El *Control Plane* de EKS tiene un costo fijo continuo, lo que encarece la arquitectura en producción frente a soluciones monolíticas.
