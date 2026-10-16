@@ -1,0 +1,16 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: meditriage-api
+  namespace: meditriage            # <- el namespace que crea terraform/main.tf
+  labels:
+    app.kubernetes.io/name: meditriage-api
+    app.kubernetes.io/part-of: meditriage
+spec:
+  type: ClusterIP
+  selector:
+    app.kubernetes.io/name: meditriage-api
+  ports:
+    - name: http
+      port: 80
+      targetPort: http
