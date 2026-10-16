@@ -1,51 +1,33 @@
 # -- Etapa 1: Builder --
-FROM python:3.11-slim AS builder
+# Misma base Debian 12 / Python 3.11 que la imagen distroless final,
+# para que las dependencias compiladas sean compatibles.
+FROM python:3.11-slim-bookworm AS builder
 
-ENV PYTHONDONTWRITEBYTECODE=1 \
+ENV PIP_NO_CACHE_DIR=1 \
+    PIP_DISABLE_PIP_VERSION_CHECK=1
+
+WORKDIR /build
+COPY requirements.txt .
+# Se instalan en un directorio aislado (no en un venv) porque en distroless
+# solo hay que copiar archivos: un venv apunta al python de la etapa builder.
+RUN pip install --target=/deps -r requirements.txt
+
+# -- Etapa 2: Runtime (distroless, non-root) --
+# La variante :nonroot ejecuta como UID/GID 65532, el mismo que declara
+# securityContext en k8s/deployment.yaml (runAsUser: 65532).
+FROM gcr.io/distroless/python3-debian12:nonroot
+
+ENV PYTHONPATH=/deps \
+    PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1
 
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    build-essential \
-    libpq-dev \
-    && rm -rf /var/lib/apt/lists/*
-
-RUN python -m venv /opt/venv
-ENV PATH="/opt/venv/bin:$PATH"
-
 WORKDIR /app
-COPY requirements.txt .
-RUN pip install --no-cache-dir --upgrade pip && \
-    pip install --no-cache-dir -r requirements.txt
+COPY --from=builder --chown=65532:65532 /deps /deps
+COPY --chown=65532:65532 main.py .
 
-# -- Etapa 2: Runtime --
-FROM python:3.11-slim
-
-ENV PYTHONDONTWRITEBYTECODE=1 \
-    PYTHONUNBUFFERED=1 \
-    PATH="/opt/venv/bin:$PATH"
-
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    libpq5 \
-    curl \
-    && rm -rf /var/lib/apt/lists/*
-
-# Crear usuario y grupo sin privilegios
-RUN groupadd -r appgroup && useradd -r -g appgroup appuser
-
-WORKDIR /app
-
-# Copiar entorno virtual del builder
-COPY --from=builder /opt/venv /opt/venv
-
-# Copiar código fuente y asignar propiedad al usuario sin privilegios
-COPY --chown=appuser:appgroup . .
-
-USER appuser
-
+USER 65532:65532
 EXPOSE 8000
 
-# Sonda de salud para Kubernetes
-HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
-  CMD curl -f http://localhost:8000/health || exit 1
-
-CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
+# El ENTRYPOINT de la imagen base ya es el intérprete de Python.
+# No hay HEALTHCHECK: distroless no trae curl y Kubernetes usa sus propios probes.
+CMD ["-m", "uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
