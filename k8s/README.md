@@ -20,7 +20,8 @@ kubectl get all,ingress,configmap -n meditriage
 
 ### Recursos desplegados (`kubectl get all`)
 
-![kubectl get all](docs/img/kubectl-get-all.png)
+<img width="1194" height="87" alt="kubectl-get-all" src="https://github.com/user-attachments/assets/1c5f8380-73bf-4931-8851-f95a46735a43" />
+
 
 ### Prueba del HPA con carga sintética
 
@@ -33,4 +34,5 @@ kubectl get all,ingress,configmap -n meditriage
 3. Capturar cuando `TARGETS` supere 50 % y `REPLICAS` suba de 2.
 4. Limpiar: `kubectl delete pod load-generator -n meditriage`
 
-![HPA escalando](docs/img/hpa-scaling.png)
+<img width="1107" height="407" alt="hpa-scaling" src="https://github.com/user-attachments/assets/7e5181cf-31c2-4cbf-8ff7-0cd5b29f0750" />
+
