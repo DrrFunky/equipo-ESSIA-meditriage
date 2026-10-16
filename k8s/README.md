@@ -34,5 +34,6 @@ kubectl get all,ingress,configmap -n meditriage
 3. Capturar cuando `TARGETS` supere 50 % y `REPLICAS` suba de 2.
 4. Limpiar: `kubectl delete pod load-generator -n meditriage`
 
-<img width="1107" height="407" alt="hpa-scaling" src="https://github.com/user-attachments/assets/7e5181cf-31c2-4cbf-8ff7-0cd5b29f0750" />
+<img width="1191" height="374" alt="image" src="https://github.com/user-attachments/assets/7fc7a4c9-1d24-45c3-80ec-109f15e8787b" />
+
 
