@@ -2,7 +2,7 @@
 
 | Archivo | Qué define |
 |---|---|
-| `configmap.yaml` | Configuración no secreta (`APP_ENV`, `LOG_LEVEL`, `PORT`) |
+| `configmap.yaml` | Configuración no secreta (APP_ENV, LOG_LEVEL) |
 | `deployment.yaml` | 2 réplicas, imagen por digest, usuario non-root, probes y requests/limits |
 | `service.yaml` | Service `ClusterIP` (80 → 8000) |
 | `ingress.yaml` | Entrada HTTP en `meditriage.local` |
