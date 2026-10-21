@@ -1,15 +1,15 @@
-{
-  "patientId": "pt-8a7b6c5d",
-  "symptoms": [
-    "dolor torácico opresivo",
-    "dificultad para respirar",
-    "sudoración fría"
-  ],
-  "vitalSigns": {
-    "heartRate": 115,
-    "bloodPressureSystolic": 145,
-    "bloodPressureDiastolic": 90,
-    "temperatureCelsius": 37.2,
-    "oxygenSaturationPercentage": 92
-  }
-}
+   {
+     "patientId": "8a7b6c5d-1e2f-4a3b-9c4d-5e6f7a8b9c0d",
+     "symptoms": [
+       "dolor torácico opresivo",
+       "dificultad para respirar",
+       "sudoración fría"
+     ],
+     "vitalSigns": {
+       "heartRate": 115,
+       "bloodPressureSystolic": 145,
+       "bloodPressureDiastolic": 90,
+       "temperatureCelsius": 37.2,
+       "oxygenSaturationPercentage": 92
+     }
+   }
