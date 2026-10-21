@@ -10,15 +10,17 @@ Person(medico, "Personal Médico", "Enfermera de triage o Médico jefe que revis
 System_Boundary(meditriage, "MediTriage") {
     Container(spa, "Aplicación SPA Web", "React / Next.js — AWS Amplify", "Provee la interfaz de usuario para el registro y el tablero dinámico. Desplegado en CDN global con SSL/HTTPS para protección de PII en tránsito.")
 
-    Container(api, "API Backend", "Python / FastAPI — AWS Elastic Beanstalk", "Monolito modular (Contextos Clínico, Identidad, Auditoría y Facturación). Orquesta la lógica, maneja WebSockets, ofusca PII y gestiona la comunicación externa. Incluye el relay del Patrón Outbox. Aislada en VPC privada.")
+    Boundary(k8s, "Clúster Kubernetes", "Docker Desktop (dev) · Amazon EKS (objetivo prod) · imágenes distroless no-root por digest desde GHCR") {
+        Container(api, "API Backend", "Python / FastAPI — Deployment en Kubernetes", "Monolito modular (Contextos Clínico, Identidad, Auditoría y Facturación). Orquesta la lógica, maneja WebSockets, ofusca PII y gestiona la comunicación externa. Incluye el relay del Patrón Outbox. 2 a 5 réplicas (HPA por CPU), probes en /health. Expuesta por Ingress.")
+
+        Container(worker, "Servicio de IA (Worker)", "Python — Deployment en Kubernetes", "Consume solicitudes de triage de su cola SQS de forma asíncrona para sugerir la categorización ESI (1-5) y generar su justificación clínica. Escala por réplicas.")
+
+        Container(proyector, "Proyectores de Lectura", "Python — Deployment en Kubernetes", "Consumen eventos del broker de forma idempotente y actualizan el read model (CQRS).")
+    }
 
     ContainerDb(db, "Base de Datos Relacional", "PostgreSQL — Amazon RDS", "Write model: Encounter, signos vitales, síntomas, triage, consentimientos, outbox_event, processed_event y AuditLog append-only (5 años). Cifrada en reposo con AWS KMS (AES-256).")
 
     ContainerQueue(broker, "Broker de Mensajería", "Amazon SNS + SQS (FIFO)", "Una cola por consumidor, ordenadas por encounter_id, con Dead Letter Queue. Entrega at-least-once; consumidores idempotentes por event_id.")
-
-    Container(worker, "Servicio de IA (Worker)", "Python — AWS Lambda", "Procesa síntomas de forma asíncrona para sugerir la categorización ESI (1-5) y generar su justificación clínica (Serverless).")
-
-    Container(proyector, "Proyectores de Lectura", "Python — AWS Lambda", "Consumen eventos del broker de forma idempotente y actualizan el read model (CQRS).")
 
     ContainerDb(search, "Read Model: Dashboard de Triage", "Amazon OpenSearch Service", "Proyección de lectura para el tablero priorizado por ESI.")
 
@@ -36,10 +38,10 @@ BiRel(api, db, "Escribe estado y outbox_event en la misma transacción; lee dato
 Rel(api, broker, "Publica eventos (relay Outbox, PII ofuscada/enmascarada)", "AWS API / HTTPS")
 Rel(broker, api, "Consume resultados de triage y eventos de otros contextos (long polling)", "AWS API / HTTPS")
 
-Rel(broker, worker, "Dispara ejecución de inferencia ESI (triage.requested)", "AWS API / HTTPS")
+Rel(broker, worker, "Entrega solicitudes de inferencia ESI (triage.requested), consumidas por long polling", "AWS API / HTTPS")
 Rel(worker, broker, "Publica resultado ESI y justificación (triage.completed / triage.failed)", "AWS API / HTTPS")
 
-Rel(broker, proyector, "Entrega eventos clínicos", "AWS API / HTTPS")
+Rel(broker, proyector, "Entrega eventos clínicos (long polling)", "AWS API / HTTPS")
 Rel(proyector, search, "Actualiza proyección del dashboard", "HTTPS")
 Rel(proyector, cache, "Actualiza estado de sala de espera", "TLS")
 
