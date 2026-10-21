@@ -1,5 +1,3 @@
-Estos son los datos del proyecto para el README, sacados de los archivos del repo. Puedes copiar los bloques tal cual. El único dato que no pude sacar del repo es la **materia o asignatura**: agrégala tú.
-
 ## Descripción
 
 > **MediTriage** es un sistema de apoyo a la priorización clínica en servicios de urgencia. Un motor de IA sugiere la categoría **ESI (1 a 5)** a partir de síntomas y signos vitales, con una justificación legible, y la enfermera de triage siempre confirma o corrige la sugerencia. La IA asiste y no reemplaza al personal de salud.
@@ -113,12 +111,6 @@ Nota para Alonso: la rúbrica menciona `0004-plataforma-k8s.md`, pero ese númer
 - El motor ESI es de reglas simples (`rules-v0`), no criterio clínico validado.
 - `/load` existe solo para probar el HPA y debe retirarse fuera de la demo.
 - Sin shell en la imagen distroless, no se puede usar `kubectl exec`. Se depura con logs.
-
-Dos cosas antes de pegarlo:
-- Confirma que `terraform apply` funciona tal cual en el flujo que usó Cristóbal (cuál carpeta, con qué clúster), porque yo no lo ejecuté.
-- Revisa los enlaces cuando todo esté mergeado, sobre todo `k8s/README.md#evidencias`, que depende de cómo GitHub genere el ancla.
-
-Y como dice la tarea, el README raíz se hace al final, cuando todo esté en `main`, para no pisar el contenido de otros. Recuerda no borrar lo que ya tenga el README del equipo.
 
 ## Contenedorización (S07 · Martín Durán)
 
