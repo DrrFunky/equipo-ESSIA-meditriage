@@ -1,14 +1,26 @@
-# ADR 0004 · Datos y Eventos (Persistencia, Broker y Patrones)
+# ADR 0004 · Datos, Eventos y Plataforma de Ejecución (Persistencia, Broker, Patrones, Contenedores, Kubernetes e IaC)
 
 ## Estado
-Aceptado - 16/10/2026
+Aceptado - 21/10/2026
+
+**Historial de revisiones**
+
+| Fecha | Versión | Cambio |
+|---|---|---|
+| 08/10/2026 | v1 (Propuesto) | Entrega S06: motores de datos, broker y patrones (CQRS, Outbox). |
+| 21/10/2026 | v2 (Aceptado) | Entrega S07: se incorpora la plataforma de ejecución (contenedores, Kubernetes, IaC) y el Anexo de Seguridad. Esta versión absorbe el contenido del borrador "ADR 0005 · Plataforma Base", que se elimina del repositorio por indicación del docente. |
+
+**Relación con otros ADRs:** este ADR **refina la decisión de cómputo del ADR 0003**. Se mantienen del ADR 0003 el proveedor (AWS), el frontend en AWS Amplify, PostgreSQL en Amazon RDS y la mensajería en SQS. Se reemplaza el cómputo de la API (Elastic Beanstalk) y del worker de IA (Lambda) por contenedores sobre Kubernetes. Respeta el estilo de monolito modular del ADR 0002.
 
 ## Contexto
 El Contexto Clínico (Core Domain) gestiona el ciclo de vida del paciente en urgencias mediante el Aggregate Root `Encounter`. Sobre la infraestructura AWS definida en el ADR 0003, se requiere: (1) registrar el estado clínico con integridad transaccional; (2) publicar eventos de dominio de forma confiable hacia Motor IA, Auditoría, HIS Externo y Tablero, y consumir los emitidos por Identidad y HIS Externo (ver `event-catalog.md`); (3) garantizar trazabilidad legal de las decisiones de la IA sin exponer PII en los eventos (Leyes 19.628 y 21.719); y (4) soportar lecturas intensivas (dashboard de triage y sala de espera) sin degradar el modelo transaccional.
 
-## Decisión
-Se adoptan los siguientes motores y patrones, alineados con los servicios gestionados del ADR 0003:
+Con la entrega S07, el equipo además necesita una plataforma de ejecución que haga los despliegues reproducibles y seguros, que escale ante variaciones de carga en urgencias y que deje la infraestructura versionada y auditable, evitando el "drift" por configuración manual. Un único modelo de cómputo (contenedores) para la API, el worker de IA y los proyectores simplifica la operación para un equipo de 4 personas y habilita el pipeline CI/CD y GitOps de las sesiones siguientes.
 
+## Decisión
+Se adoptan los siguientes motores, patrones y plataforma, alineados con los servicios gestionados del ADR 0003.
+
+### Datos y eventos
 - **Write Model (estado del Encounter):** PostgreSQL sobre Amazon RDS.
 - **Broker de Eventos:** Amazon SNS FIFO (un tópico por tipo de evento) + Amazon SQS FIFO (una cola por consumidor, con DLQ FIFO).
 - **Orden y deduplicación:** `MessageGroupId = encounter_id` y `MessageDeduplicationId = event_id`.
@@ -17,7 +29,21 @@ Se adoptan los siguientes motores y patrones, alineados con los servicios gestio
 - **Patrones descartados:** Event Sourcing y Saga.
 - **Semántica de entrega:** at-least-once, con consumidores idempotentes por `event_id` (tabla `processed_event`).
 
+### Plataforma de ejecución (S07)
+- **Empaquetado:** Docker con *multi-stage build* (etapa `builder` con `python:3.11-slim` y etapa final `gcr.io/distroless/python3-debian12:nonroot`). La imagen corre como usuario no-root (UID 65532), sin shell ni gestor de paquetes, y solo incluye las dependencias fijadas en `requirements.txt` y el código de la aplicación.
+- **Trazabilidad de imágenes:** publicación en GHCR y despliegue siempre por *digest* (`@sha256:...`). Queda prohibido el tag `:latest`.
+- **Orquestación:** Kubernetes. En desarrollo y pruebas, el clúster integrado de Docker Desktop; como objetivo de producción, Amazon EKS (aún no implementado).
+- **Qué corre en Kubernetes:** la API Backend (monolito modular, con el relay del Outbox), el worker de IA y los proyectores de lectura, cada uno como `Deployment`. Esto reemplaza a Elastic Beanstalk y Lambda del ADR 0003. El frontend sigue en AWS Amplify.
+- **Manifiestos:** Kustomize (`k8s/`): `ConfigMap`, `Deployment`, `Service` (ClusterIP), `Ingress` y `HorizontalPodAutoscaler`, aplicados con `kubectl apply -k k8s/`.
+- **Endurecimiento del pod:** `runAsNonRoot`, `readOnlyRootFilesystem`, `allowPrivilegeEscalation: false`, `capabilities: drop ALL` y `seccompProfile: RuntimeDefault`.
+- **Disponibilidad del despliegue:** 2 réplicas mínimas, `RollingUpdate` con `maxUnavailable: 0`, y `readinessProbe` y `livenessProbe` sobre `GET /health`.
+- **Escalabilidad:** HPA por CPU con objetivo del 50 % (2 a 5 réplicas), validado con carga sintética. La escala por latencia queda como mejora futura.
+- **Configuración y secretos (12-Factor):** la configuración no secreta va en un `ConfigMap`; las credenciales van en un `Secret` y nunca en el repositorio. En desarrollo se usa un `Secret` placeholder gestionado por Terraform; en producción los valores provienen de AWS Secrets Manager (el mecanismo de inyección se define en S09).
+- **Infraestructura como Código:** Terraform (HCL, proveedor `kubernetes`). Desarrollo local: backend `kubernetes` (el `.tfstate` se guarda como `Secret` en el clúster de Docker Desktop). Objetivo en producción: backend remoto en Amazon S3 con bloqueo de estado en DynamoDB, un *workspace* por ambiente. Hoy Terraform crea el namespace `meditriage` y el `Secret` placeholder.
+
 ## Justificación de los trade-offs
+
+### Datos y eventos
 
 **Por qué PostgreSQL y no un motor NoSQL (MongoDB/DynamoDB):** El Encounter y sus entidades (signos vitales, síntomas, solicitudes y resultados de triage, confirmación) son relacionales y exigen transacciones ACID e integridad referencial. Además, el PPT del taller establece SQL como respuesta por defecto, y JSONB cubre los payloads flexibles sin necesidad de otro motor.
 
@@ -33,32 +59,68 @@ Se adoptan los siguientes motores y patrones, alineados con los servicios gestio
 
 **El riesgo asumido:** OpenSearch y ElastiCache tienen cobertura limitada en el Free Tier y pueden generar cobros por encima del ADR 0003. Se asume el riesgo en el MVP y se mitiga con Billing Alarms. Siguiendo la regla del taller ("especializa solo cuando mides que Postgres no alcanza"), si el costo o la complejidad resultan excesivos, las proyecciones pueden resolverse temporalmente con tablas de lectura en PostgreSQL.
 
+### Plataforma de ejecución
+
+**Por qué Kubernetes y no Elastic Beanstalk, ECS o Lambda (ADR 0003):** Un sistema de triage necesita *self-healing* (reinicio automático de contenedores caídos), despliegues sin caída (*rolling update* con `maxUnavailable: 0`) y escalado automático. Kubernetes entrega eso con un único modelo de despliegue para la API, el worker de IA y los proyectores, que además es el mismo en el laptop del equipo y en la nube. ECS sería más simple de operar, pero es propietario de AWS; Kubernetes es agnóstico y facilita una eventual instalación on-premise en los servidores del centro de salud. Lambda se descarta como cómputo base del worker para no mantener dos modelos de despliegue distintos; sigue siendo una posible evolución si se mide que el worker se beneficia de escalar a cero.
+
+**Por qué Terraform y no CloudFormation o Pulumi:** Terraform ofrece un buen equilibrio entre madurez del ecosistema y control declarativo. A diferencia de CloudFormation, que es exclusivo de AWS, permite gestionar varios proveedores (AWS, Kubernetes) con el mismo lenguaje y flujo de trabajo. Frente a Pulumi, HCL mantiene la infraestructura declarativa y evita que se convierta en código imperativo difícil de revisar.
+
+**Por qué Docker multi-stage con imagen distroless y no-root:** En un contexto de salud conviene minimizar la superficie de ataque. El *multi-stage* instala las dependencias en una etapa y copia solo lo necesario a la imagen final. La base distroless no trae gestor de paquetes, shell ni utilidades de red (`curl`, `wget`), de modo que un atacante que comprometa la aplicación tiene muy pocas herramientas para escalar. Se eligió `python:3.11-slim` para construir porque coincide con el intérprete de `distroless/python3-debian12`, evitando incompatibilidades en las dependencias compiladas. Ejecutar como no-root evita el escalamiento de privilegios hacia el nodo.
+
+**Por qué imagen por digest:** un tag puede reapuntarse a otra imagen; un digest no. Garantiza que lo que se probó es exactamente lo que se despliega y deja evidencia para auditoría.
+
+**Por qué un clúster local para el MVP y no solo EKS:** El plano de control de EKS tiene costo fijo por hora y no está cubierto por el Free Tier, lo que contradice la premisa de costos del ADR 0003. Por eso el MVP se demuestra en el clúster de Docker Desktop con los mismos manifiestos, y EKS queda como destino de producción, a evaluar cuando haya presupuesto.
+
+## Alternativas descartadas
+- **Microservicios desde el día 0:** descartado en el ADR 0002 por el tamaño del equipo y el costo operacional.
+- **Kafka (MSK) o RabbitMQ como broker:** fuera del Free Tier y con mayor carga operativa que SNS/SQS gestionados.
+- **MongoDB o DynamoDB como motor principal:** el dominio es relacional y exige ACID.
+- **Event Sourcing y Saga:** complejidad no justificada para el MVP; se reevalúa Saga con Facturación e ISAPRES.
+- **Elastic Beanstalk, ECS o Lambda como cómputo:** múltiples modelos de despliegue o dependencia de un proveedor, frente a un único modelo con Kubernetes.
+- **CloudFormation o Pulumi para IaC:** menor portabilidad, o infraestructura imperativa más difícil de auditar.
+- **Imágenes basadas en distribuciones completas (Debian/Ubuntu) con tag `:latest`:** mayor superficie de ataque y despliegues no reproducibles.
+
 ## Consecuencias
 
 **Gana:**
-- Resiliencia: Outbox evita la pérdida de eventos ante caídas del broker, y las DLQ aíslan mensajes fallidos.
+- Resiliencia: Outbox evita la pérdida de eventos ante caídas del broker, y las DLQ aíslan mensajes fallidos. Kubernetes reinicia contenedores caídos y actualiza sin interrupciones.
 - Orden: SNS/SQS FIFO conserva el orden de los eventos de cada atención (`encounter_id`).
-- Rendimiento: CQRS permite escalar las lecturas sin degradar la base operativa.
-- Coherencia con el ADR 0003: un solo proveedor y servicios gestionados con baja carga operativa.
-- Privacidad y auditoría: PII ausente de los eventos y registro legal inmutable separado del flujo operativo.
+- Rendimiento: CQRS permite escalar las lecturas sin degradar la base operativa, y el HPA escala la API según la carga.
+- Coherencia con el ADR 0003: un solo proveedor y servicios gestionados con baja carga operativa para datos y mensajería.
+- Seguridad: contenedores mínimos, sin shell y no-root; despliegues inmutables por digest; PII ausente de los eventos y registro legal inmutable separado del flujo operativo.
+- Reproducibilidad y auditoría: infraestructura y manifiestos versionados en Git, base para GitOps en S08.
 
 **Pierde / se vuelve más difícil:**
-- Complejidad: tres almacenes (PostgreSQL, OpenSearch, Redis) más el broker y un relay Outbox que debe estar siempre operativo.
+- Complejidad: tres almacenes (PostgreSQL, OpenSearch, Redis) más el broker y un relay Outbox que debe estar siempre operativo, además de operar Kubernetes.
 - Consistencia eventual: habrá una latencia entre el commit en PostgreSQL y su aparición en el dashboard.
 - Duplicados: por at-least-once, todo consumidor debe ser idempotente.
 - FIFO: ordena por `encounter_id`, pero su deduplicación cubre solo 5 minutos y tiene menor throughput que las colas estándar; es suficiente para el volumen del MVP.
 - Sin replay nativo: reconstruir proyecciones exige republicar desde `outbox_event`.
 - Gobierno de eventos: requiere versionado de schemas (`event_version`) y compatibilidad hacia atrás.
-- Riesgo financiero: OpenSearch y ElastiCache exigen monitoreo de costos (FinOps).
+- Depuración en producción: sin shell en la imagen, `kubectl exec` no es posible. El equipo depende de logs estructurados, observabilidad y contenedores efímeros de depuración (`kubectl debug`).
+- Riesgo financiero: OpenSearch, ElastiCache y el plano de control de EKS exigen monitoreo de costos (FinOps).
+
+**Limitaciones asumidas en la entrega actual (S07):**
+- El estado de la API vive en memoria de cada pod (no hay conexión real a PostgreSQL todavía): con 2 o más réplicas cada una tiene su propio estado y se pierde al reiniciar. Esto incumple el factor 6 de 12-Factor y se corregirá al integrar RDS.
+- La autenticación Bearer está simulada (solo verifica que el header exista); pendiente de integrar el servicio de identidad definitivo.
+- El backend de Terraform en S3 y DynamoDB y el despliegue en EKS están definidos como objetivo, pero no implementados.
+
+## Verificación de la plataforma (S07)
+- [ ] La imagen final pesa menos de 200 MB y corre como no-root.
+- [ ] Los manifiestos referencian la imagen por digest, no por `:latest`.
+- [ ] `kubectl apply -k k8s/` despliega sin errores y los pods quedan `Ready`.
+- [ ] El HPA sube réplicas bajo carga sintética (evidencia en `docs/img/`).
+- [ ] `terraform validate` y `terraform plan` sin errores.
+- [ ] Ningún secreto real en el repositorio.
 
 ---
 
 # Anexo de Seguridad al ADR 0004: Audit Log inmutable y protección de PII
 
-- **Estado:** Propuesto
+- **Estado:** Aceptado
 - **Responsable:** Martín Durán (DevSecOps)
 - **Revisión conjunta:** Cristóbal Araos (Tech Lead)
-- **Relacionado:** ADR 0004 (datos y eventos), `event-catalog.md`, `der.png`
+- **Relacionado:** ADR 0004 (datos, eventos y plataforma), `event-catalog.md`, `der.png`
 
 ## 1. Contexto
 MediTriage maneja datos de salud de pacientes (datos sensibles). Se requiere: (a) un registro de auditoría que no pueda alterarse ni borrarse, y (b) que ningún dato personal identificable (PII) salga en claro hacia el broker.
