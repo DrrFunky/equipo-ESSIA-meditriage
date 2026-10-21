@@ -11,19 +11,19 @@ Limitaciones conocidas (documentar en el README / ADR):
     propio estado y se pierde al reiniciar. En producción irían PostgreSQL + SQS.
   - La autenticación Bearer solo verifica que el header exista (stub); no valida
     la firma del JWT.
-  - /load existe solo para probar el HPA y debe retirarse fuera de la demo.
+  
 
 Compatibilidad con el despliegue:
   - Objeto ASGI `app` en main.py  ->  `uvicorn main:app`
   - /health sin auth y sin dependencias externas (probes de Kubernetes)
   - No escribe en disco (el Deployment usa readOnlyRootFilesystem)
-  - Configuración por variables de entorno (ConfigMap: APP_ENV, LOG_LEVEL, PORT)
+  - Configuración por variables de entorno (ConfigMap: APP_ENV, LOG_LEVEL)
 """
 import json
 import logging
 import os
 import threading
-import time
+
 from datetime import date, datetime, timezone
 from typing import Any, Optional
 from uuid import UUID, uuid4
@@ -41,8 +41,6 @@ APP_ENV = os.getenv("APP_ENV", "development")
 LOG_LEVEL = os.getenv("LOG_LEVEL", "info").upper()
 PORT = int(os.getenv("PORT", "8000"))
 AUTH_ENABLED = os.getenv("AUTH_ENABLED", "true").lower() == "true"
-ENABLE_LOAD_ENDPOINT = os.getenv("ENABLE_LOAD_ENDPOINT", "true").lower() == "true"
-MAX_LOAD_ITERATIONS = 5_000_000
 
 logging.basicConfig(
     level=getattr(logging, LOG_LEVEL, logging.INFO),
@@ -300,20 +298,6 @@ async def health():
 @app.get("/", tags=["ops"])
 async def root():
     return {"service": "meditriage-api", "version": app.version, "env": APP_ENV}
-
-
-@app.get("/load", tags=["ops"])
-def load(n: int = Query(200_000, ge=1, le=MAX_LOAD_ITERATIONS)):
-    """Consume CPU a propósito para probar el HPA. Retirar fuera de la demo."""
-    if not ENABLE_LOAD_ENDPOINT:
-        raise Problem(404, "Recurso no encontrado", "Endpoint deshabilitado.", "disabled")
-    start = time.perf_counter()
-    total = 0
-    for i in range(n):
-        total += (i * i) % 7
-    return {"iterations": n, "result": total,
-            "elapsed_ms": round((time.perf_counter() - start) * 1000, 1)}
-
 
 # --------------------------------------------------------------------------
 # Endpoints del contrato (api/openapi.yaml)

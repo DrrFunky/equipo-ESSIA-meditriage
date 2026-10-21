@@ -11,4 +11,3 @@ data:
   # Credenciales (BD, JWT, claves) van en un Secret, nunca aquí.
   APP_ENV: "production"
   LOG_LEVEL: "info"
-  PORT: "8000"
