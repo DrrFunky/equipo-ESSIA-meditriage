@@ -1,7 +1,7 @@
 # ADR 0004 · Datos y Eventos (Persistencia, Broker y Patrones)
 
 ## Estado
-Propuesto - 08/10/2026
+Aceptado - 16/10/2026
 
 ## Contexto
 El Contexto Clínico (Core Domain) gestiona el ciclo de vida del paciente en urgencias mediante el Aggregate Root `Encounter`. Sobre la infraestructura AWS definida en el ADR 0003, se requiere: (1) registrar el estado clínico con integridad transaccional; (2) publicar eventos de dominio de forma confiable hacia Motor IA, Auditoría, HIS Externo y Tablero, y consumir los emitidos por Identidad y HIS Externo (ver `event-catalog.md`); (3) garantizar trazabilidad legal de las decisiones de la IA sin exponer PII en los eventos (Leyes 19.628 y 21.719); y (4) soportar lecturas intensivas (dashboard de triage y sala de espera) sin degradar el modelo transaccional.
