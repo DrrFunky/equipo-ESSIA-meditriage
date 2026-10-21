@@ -11,7 +11,7 @@ Impacto en el negocio: En un entorno de urgencias médicas, la fluidez es vital.
 
 Métrica objetivo: Cifrado fuerte obligatorio en reposo (bases de datos) y en tránsito (comunicaciones API); enmascaramiento total de PII (Información de Identificación Personal) en logs.
 
-Impacto en el negocio: El sistema procesa diagnósticos, síntomas y signos vitales ligados a la identidad de un paciente. El cumplimiento estricto de las leyes chilenas 19.628 (Protección de la Vida Privada) y 21.719 (Derechos y Deberes de los Pacientes) es un requerimiento legal innegociable. Una brecha de datos sin cifrar expondría a la red de salud a demandas severas y pérdida absoluta de viabilidad del proyecto.
+Impacto en el negocio: El sistema procesa diagnósticos, síntomas y signos vitales ligados a la identidad de un paciente. El cumplimiento estricto de las leyes chilenas 19.628 (Protección de la Vida Privada) y 21.719 (Proteccion de Datos Personales) es un requerimiento legal innegociable. Una brecha de datos sin cifrar expondría a la red de salud a demandas severas y pérdida absoluta de viabilidad del proyecto.
 
 ## 3. Disponibilidad (Availability)
 
