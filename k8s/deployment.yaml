@@ -31,7 +31,7 @@ spec:
           type: RuntimeDefault
       containers:
         - name: api
-          # Imagen fijada por digest (nunca :latest), publicada en GHCR por Martín Durán.
+          # Imagen fijada por digest (nunca :latest), publicada en GHCR por Martín Garrido (Guffy).
           image: ghcr.io/guffy0921/meditriage@sha256:11a9c511d4ea3351a32c286e1031c35da57a313d298db8dec4091022977e8971
           imagePullPolicy: IfNotPresent
           ports:
@@ -40,6 +40,9 @@ spec:
           envFrom:
             - configMapRef:
                 name: meditriage-config
+            - secretRef:
+                name: meditriage-secrets
+                optional: true
           resources:
             requests:               # el HPA calcula el % de CPU contra este valor
               cpu: 100m
@@ -66,3 +69,4 @@ spec:
       volumes:
         - name: tmp
           emptyDir: {}
+          
