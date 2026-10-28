@@ -38,7 +38,7 @@ del sistema (para cumplir el NFR de disponibilidad con fallback).
 - **Cuándo se elige:** dominio maduro con bounded contexts claros, múltiples equipos, sistemas asíncronos con workflows largos.
 - **Fortaleza:** escalado independiente, desacoplamiento máximo, resiliencia por bulkhead, replay de eventos.
 - **Costo real:** complejidad operacional alta, red como punto único de falla, consistencia eventual, exige idempotencia y orden en los eventos.
-- **Frente a los NFRs de MediTriage:** el equipo (6 personas) y la madurez del dominio no justifican esta complejidad; la latencia agregada por llamadas de red entre servicios pone en riesgo el NFR de <3s p95.
+- **Frente a los NFRs de MediTriage:** el equipo (4 personas) y la madurez del dominio no justifican esta complejidad; la latencia agregada por llamadas de red entre servicios pone en riesgo el NFR de <3s p95.
 
 **Conclusión de la evaluación:** ninguna opción es "pura" en su forma extrema.
 Se opta por un híbrido pragmático: Monolito Modular como base, aplicando el

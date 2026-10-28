@@ -106,12 +106,11 @@ Para el desarrollo de este Producto Mínimo Viable (MVP), el equipo ha evaluado 
 
 ### Must Have 
 * **Historia 1 (Sugerencia ESI automatizada):** Es el motor principal del producto; sin él, no hay triage con IA.
+* **Historia 2 (Justificación clínica explicable):** Esencial para evitar el efecto "caja negra" de la IA y brindar seguridad a la enfermera, siendo una de las restricciones principales de ingeniería.
 * **Historia 3 (Registro y consentimiento):** Obligatorio por la Ley 19.628 para poder procesar datos sensibles de salud de forma legal.
 * **Historia 4 (Tablero de priorización):** Interfaz mínima para que el personal médico consuma el resultado de la IA y logre el objetivo de negocio.
 * **Historia 5 (Audit log de decisiones IA):** Crítico para cumplir con la Ley 21.719 y las restricciones de ingeniería (registro inmutable por 5 años).
 
-### Should Have 
-* **Historia 2 (Justificación clínica explicable):** Esencial para evitar el efecto "caja negra" de la IA y brindar seguridad a la enfermera, siendo una de las restricciones principales de ingeniería.
 
 ### Could Have 
 * **Notificaciones automáticas:** Envío de alertas a los pacientes en sala de espera sobre el tiempo estimado basado en el tablero.

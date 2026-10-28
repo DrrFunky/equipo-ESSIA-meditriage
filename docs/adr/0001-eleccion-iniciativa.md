@@ -2,7 +2,7 @@
 
 * **Fecha:** 19 de agosto de 2026
 * **Autores:** Cristobal Araos, Martin Duran, Martin Garrido, Alonso Plane 
-* **Estado:** Aprobado
+* **Estado:** Aceptado
 
 ## Título
 

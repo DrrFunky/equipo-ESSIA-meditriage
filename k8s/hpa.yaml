@@ -1,0 +1,22 @@
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: meditriage-api
+  namespace: meditriage            # <- el namespace que crea terraform/main.tf
+  labels:
+    app.kubernetes.io/name: meditriage-api
+    app.kubernetes.io/part-of: meditriage
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: meditriage-api
+  minReplicas: 2
+  maxReplicas: 5
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 50

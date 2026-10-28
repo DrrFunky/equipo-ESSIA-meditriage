@@ -7,6 +7,8 @@ info:
     triage asistidas por IA, la consulta del tablero priorizado en
     tiempo real, y la auditoría de decisiones automatizadas.
   version: 1.0.0
+  contact:
+    name: Equipo MediTriage (UBO, Ingeniería de Software)
 
 servers:
   - url: https://api.meditriage.example.com/v1
@@ -46,7 +48,8 @@ paths:
             examples:
               patientRegistrationExample:
                 summary: Ejemplo de registro de paciente
-                $ref: './examples/create-patient-request.json'
+                value:
+                  $ref: './examples/create-patient-request.json'
       responses:
         '201':
           description: Paciente registrado exitosamente
@@ -63,7 +66,8 @@ paths:
               examples:
                 invalidRutExample:
                   summary: RUT inválido
-                  $ref: './examples/error-422-invalid-rut.json'
+                  value:
+                    $ref: './examples/error-422-invalid-rut.json'
         '401':
           description: No autenticado — falta o es inválido el token Bearer
           content:
@@ -85,7 +89,8 @@ paths:
               examples:
                 invalidRutExample:
                   summary: RUT inválido
-                  $ref: './examples/error-422-invalid-rut.json'
+                  value:
+                    $ref: './examples/error-422-invalid-rut.json'
 
   /triage-evaluations:
     post:
@@ -147,7 +152,8 @@ paths:
             examples:
               submitTriageExample:
                 summary: Ejemplo de solicitud de evaluación de triage
-                $ref: './examples/submit-triage-request.json'
+                value:
+                  $ref: './examples/submit-triage-request.json'
       responses:
         '202':
           description: Evaluación aceptada y encolada para procesamiento asíncrono
@@ -158,7 +164,8 @@ paths:
               examples:
                 triageEvaluationResponseExample:
                   summary: Ejemplo de resultado de evaluación de triage
-                  $ref: './examples/triage-evaluation-response.json'
+                  value:
+                    $ref: './examples/triage-evaluation-response.json'
         '400':
           description: Datos de evaluación inválidos
           content:
@@ -417,7 +424,7 @@ components:
           example: "El campo 'rut' no cumple con el formato esperado."
         instance:
           type: string
-          format: uri
+          format: uri-reference
           example: "/v1/patients"
         trace_id:
           type: string

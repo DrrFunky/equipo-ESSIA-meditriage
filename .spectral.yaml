@@ -1,4 +1,4 @@
-extends: ["spectral:oas", "spectral:oas3"]
+extends: ["spectral:oas"]
 
 rules:
   # Regla 1: Exigir estándar de errores RFC 7807
