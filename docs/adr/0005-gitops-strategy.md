@@ -39,7 +39,3 @@ Se ha decidido adoptar una arquitectura basada en **GitOps con un enfoque Pull**
 
 * **Push-based CI (Ej: `kubectl apply` desde GitHub Actions):** Descartado porque requiere abrir el firewall del clúster hacia los runners de GitHub y exponer credenciales críticas de infraestructura en el servicio de CI, rompiendo el principio de menor privilegio. Además, no detecta *drift* (cambios manuales en el clúster que difieran de Git).
 * **Flux CD:** Descartado. Aunque es una herramienta GitOps nativa muy capaz, carece de una interfaz de usuario integrada de serie tan completa como la de Argo CD, lo cual disminuye la observabilidad inmediata para los miembros del equipo que no tienen un perfil puramente DevOps.
-
----
-
-*¿Te gustaría que te redacte también la sección de "CI/CD y GitOps" para el archivo `README` raíz que menciona el punto 6?*
