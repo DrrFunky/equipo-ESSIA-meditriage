@@ -3,7 +3,7 @@ name: ci-meditriage
 on:
   pull_request:
   push:
-    branches: [main]
+    branches: [main, feature/S08_CI_CD_y_GitOps]
 
 permissions:
   contents: read
@@ -90,8 +90,7 @@ jobs:
 
   promote-to-gitops:
     needs: build-and-push
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/feature/S08_CI_CD_y_GitOps')    runs-on: ubuntu-latest
     permissions:
       contents: read
     env:
