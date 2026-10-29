@@ -1,5 +1,7 @@
 import pytest
+
 from main import STORE
+
 
 @pytest.fixture(autouse=True)
 def clean_store():

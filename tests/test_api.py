@@ -34,19 +34,19 @@ def _assert_problem(res, status, slug):
 
 
 def _create_patient(rut=RUT_OK, name="Ana Perez"):
-    res = client.post("/patients",
-                      json={"rut": rut, "fullName": name, "consentGiven": True},
-                      headers=_headers())
+    res = client.post(
+        "/patients", json={"rut": rut, "fullName": name, "consentGiven": True}, headers=_headers()
+    )
     assert res.status_code == 201
     return res.json()["id"]
 
 
 def _create_evaluation(patient_id, symptoms=None, vitals=None):
-    res = client.post("/triage-evaluations",
-                      json={"patientId": patient_id,
-                            "symptoms": symptoms or [],
-                            "vitalSigns": vitals or {}},
-                      headers=_headers())
+    res = client.post(
+        "/triage-evaluations",
+        json={"patientId": patient_id, "symptoms": symptoms or [], "vitalSigns": vitals or {}},
+        headers=_headers(),
+    )
     assert res.status_code == 202
     return res.json()
 
@@ -95,9 +95,11 @@ def test_malformed_authorization_header_rejected(value):
 
 
 def test_post_patients_without_auth_is_401():
-    res = client.post("/patients",
-                      json={"rut": RUT_OK, "fullName": "Ana", "consentGiven": True},
-                      headers={"Idempotency-Key": str(uuid.uuid4())})
+    res = client.post(
+        "/patients",
+        json={"rut": RUT_OK, "fullName": "Ana", "consentGiven": True},
+        headers={"Idempotency-Key": str(uuid.uuid4())},
+    )
     assert res.status_code == 401
 
 
@@ -153,7 +155,8 @@ def test_post_patients_rut_con_dv_incorrecto():
 
 def test_post_patients_missing_field_is_400():
     response = client.post(
-        "/patients", json={"rut": RUT_OK, "consentGiven": True}, headers=_headers())
+        "/patients", json={"rut": RUT_OK, "consentGiven": True}, headers=_headers()
+    )
     _assert_problem(response, 400, "validation-error")
 
 
@@ -190,11 +193,14 @@ def test_post_patients_idempotency_replay():
 
 def test_post_patients_idempotency_conflict():
     key = {**AUTH_HEADER, "Idempotency-Key": str(uuid.uuid4())}
-    client.post("/patients",
-                json={"rut": RUT_OK, "fullName": "Ana", "consentGiven": True}, headers=key)
-    res = client.post("/patients",
-                      json={"rut": RUT_OK, "fullName": "Otra Persona", "consentGiven": True},
-                      headers=key)
+    client.post(
+        "/patients", json={"rut": RUT_OK, "fullName": "Ana", "consentGiven": True}, headers=key
+    )
+    res = client.post(
+        "/patients",
+        json={"rut": RUT_OK, "fullName": "Otra Persona", "consentGiven": True},
+        headers=key,
+    )
     _assert_problem(res, 409, "idempotency-conflict")
 
 
@@ -210,8 +216,11 @@ def test_post_triage_evaluations():
     patient_id = _create_patient(name="Juan")
     response = client.post(
         "/triage-evaluations",
-        json={"patientId": patient_id, "symptoms": ["Dolor de pecho"],
-              "vitalSigns": {"heartRate": 80}},
+        json={
+            "patientId": patient_id,
+            "symptoms": ["Dolor de pecho"],
+            "vitalSigns": {"heartRate": 80},
+        },
         headers=_headers(),
     )
     assert response.status_code == 202
@@ -220,8 +229,8 @@ def test_post_triage_evaluations():
     assert 1 <= body["esiCategory"] <= 5
     assert body["status"] == "ai_suggested"
     assert body["confirmedByNurse"] is False
-    assert "ESI" in body["justification"]          # explicabilidad
-    assert len(STORE["audit"]) == 1                # cada decisión IA queda auditada
+    assert "ESI" in body["justification"]  # explicabilidad
+    assert len(STORE["audit"]) == 1  # cada decisión IA queda auditada
 
 
 def test_post_triage_unknown_patient():
@@ -236,9 +245,9 @@ def test_post_triage_unknown_patient():
 
 def test_post_triage_requires_vital_signs():
     patient_id = _create_patient()
-    res = client.post("/triage-evaluations",
-                      json={"patientId": patient_id, "symptoms": []},
-                      headers=_headers())
+    res = client.post(
+        "/triage-evaluations", json={"patientId": patient_id, "symptoms": []}, headers=_headers()
+    )
     _assert_problem(res, 400, "validation-error")
 
 
@@ -252,7 +261,7 @@ def test_post_triage_idempotency_replay():
 
     assert res1.status_code == res2.status_code == 202
     assert res1.json() == res2.json()
-    assert len(STORE["evaluations"]) == 1   # el reintento no duplica
+    assert len(STORE["evaluations"]) == 1  # el reintento no duplica
     assert len(STORE["audit"]) == 1
 
 
@@ -268,19 +277,21 @@ def test_patch_triage_evaluations():
 
 def test_patch_confirm_by_nurse():
     ev = _create_evaluation(_create_patient(), ["dolor torácico"])
-    res = client.patch(f"/triage-evaluations/{ev['id']}",
-                       json={"confirmedByNurse": True}, headers=_headers())
+    res = client.patch(
+        f"/triage-evaluations/{ev['id']}", json={"confirmedByNurse": True}, headers=_headers()
+    )
     assert res.status_code == 200
     body = res.json()
     assert body["status"] == "confirmed"
     assert body["confirmedByNurse"] is True
-    assert body["esiCategory"] == ev["esiCategory"]   # confirmar no cambia la categoría
+    assert body["esiCategory"] == ev["esiCategory"]  # confirmar no cambia la categoría
 
 
 def test_patch_manual_fallback_overrides_category():
-    ev = _create_evaluation(_create_patient(), [], {})   # la IA sugiere ESI 5
-    res = client.patch(f"/triage-evaluations/{ev['id']}",
-                       json={"manualEsiCategory": 2}, headers=_headers())
+    ev = _create_evaluation(_create_patient(), [], {})  # la IA sugiere ESI 5
+    res = client.patch(
+        f"/triage-evaluations/{ev['id']}", json={"manualEsiCategory": 2}, headers=_headers()
+    )
     assert res.status_code == 200
     body = res.json()
     assert body["esiCategory"] == 2
@@ -290,8 +301,9 @@ def test_patch_manual_fallback_overrides_category():
 
 def test_patch_manual_category_out_of_range_is_400():
     ev = _create_evaluation(_create_patient())
-    res = client.patch(f"/triage-evaluations/{ev['id']}",
-                       json={"manualEsiCategory": 6}, headers=_headers())
+    res = client.patch(
+        f"/triage-evaluations/{ev['id']}", json={"manualEsiCategory": 6}, headers=_headers()
+    )
     _assert_problem(res, 400, "validation-error")
 
 
@@ -312,7 +324,7 @@ def test_patch_idempotency_replay_does_not_duplicate_audit():
 
     assert res1.status_code == res2.status_code == 200
     assert res1.json() == res2.json()
-    assert len(STORE["audit"]) == 2   # creación + una sola confirmación
+    assert len(STORE["audit"]) == 2  # creación + una sola confirmación
 
 
 def test_patch_idempotency_conflict():
@@ -333,20 +345,21 @@ def test_triage_board_empty():
 
 def test_triage_board_ordering():
     patient_id = _create_patient()
-    _create_evaluation(patient_id, ["dolor de dedo"], {"heartRate": 80})   # ESI 4
+    _create_evaluation(patient_id, ["dolor de dedo"], {"heartRate": 80})  # ESI 4
     _create_evaluation(patient_id, [], {"oxygenSaturationPercentage": 85})  # ESI 1
-    _create_evaluation(patient_id, ["dolor torácico"], {})                  # ESI 2
+    _create_evaluation(patient_id, ["dolor torácico"], {})  # ESI 2
 
     res = client.get("/triage-board", headers=AUTH_HEADER)
     assert res.status_code == 200
-    assert [e["esiCategory"] for e in res.json()] == [1, 2, 4]   # ESI 1 primero
+    assert [e["esiCategory"] for e in res.json()] == [1, 2, 4]  # ESI 1 primero
 
 
 # --- GET /audit-logs -------------------------------------------------------
 def test_audit_log_records_each_decision():
     ev = _create_evaluation(_create_patient(), ["dolor torácico"])
-    client.patch(f"/triage-evaluations/{ev['id']}",
-                 json={"confirmedByNurse": True}, headers=_headers())
+    client.patch(
+        f"/triage-evaluations/{ev['id']}", json={"confirmedByNurse": True}, headers=_headers()
+    )
 
     res = client.get("/audit-logs", headers=AUTH_HEADER)
     assert res.status_code == 200
@@ -361,12 +374,13 @@ def test_audit_log_is_append_only():
     ev = _create_evaluation(_create_patient())
     first_entry = client.get("/audit-logs", headers=AUTH_HEADER).json()[0]
 
-    client.patch(f"/triage-evaluations/{ev['id']}",
-                 json={"manualEsiCategory": 1}, headers=_headers())
+    client.patch(
+        f"/triage-evaluations/{ev['id']}", json={"manualEsiCategory": 1}, headers=_headers()
+    )
     logs = client.get("/audit-logs", headers=AUTH_HEADER).json()
 
     assert len(logs) == 2
-    assert logs[0] == first_entry   # la entrada original no se modifica
+    assert logs[0] == first_entry  # la entrada original no se modifica
 
 
 def test_audit_logs_date_filter_includes_today():
@@ -386,8 +400,9 @@ def test_audit_logs_date_filter_excludes_other_dates():
 
 
 def test_audit_logs_invalid_range_is_400():
-    res = client.get("/audit-logs",
-                     params={"from": "2026-12-31", "to": "2026-01-01"}, headers=AUTH_HEADER)
+    res = client.get(
+        "/audit-logs", params={"from": "2026-12-31", "to": "2026-01-01"}, headers=AUTH_HEADER
+    )
     _assert_problem(res, 400, "validation-error")
 
 
